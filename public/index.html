@@ -13,9 +13,18 @@
 
     <main id="project-list">
         <!-- PROJECT_LIST_START -->
-        <!-- 后端将自动替换这里的内容，请勿手动删除这两行注释 -->
-        <p style="text-align:center; color: #666;">暂无项目展示，请在后台添加。</p>
-        <!-- PROJECT_LIST_END -->
+
+      <article class="project-card">
+        <div class="card-icon"><svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div>
+        <h3 class="card-title">number1</h3>
+        <div class="card-actions">
+          <button onclick="handleAccess('number1', true)" class="btn-primary">访问</button>
+          <button onclick="showPlanetInfo()" class="btn-secondary">知识星球</button>
+          
+        </div>
+      </article>
+    
+<!-- PROJECT_LIST_END -->
     </main>
 
     <!-- 密码验证 Modal -->
