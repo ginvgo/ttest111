@@ -2,68 +2,61 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
+    <title>后台管理系统</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Admin 专属覆盖 */
-        body { background: #f1f5f9; }
-        .dashboard-layout { display: grid; grid-template-columns: 250px 1fr; gap: 2rem; max-width: 1400px; margin: 0 auto; padding: 2rem; }
-        .sidebar { background: white; padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--border); height: fit-content; }
-        .main-content { }
-        
-        /* 登录层 */
-        #loginLayer { position: fixed; inset: 0; background: #f8fafc; z-index: 999; display: flex; align-items: center; justify-content: center; }
-        
-        .action-btn { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; color: var(--text-muted); }
-        .action-btn:hover { background: #f1f5f9; color: var(--primary); }
-        .action-btn.delete:hover { color: #ef4444; }
+        body { background: #f1f5f9; min-height: 100vh; }
+        .dashboard { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .login-wrap { position: fixed; inset: 0; background: #f8fafc; z-index: 9999; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
-    <!-- 登录界面 -->
-    <div id="loginLayer">
-        <div class="modal-box" style="width: 400px;">
-            <h2 style="text-align: center; margin-bottom: 1.5rem;">Admin Login</h2>
+    <!-- 登录层 -->
+    <div id="loginLayer" class="login-wrap">
+        <div class="modal-box" style="width: 380px;">
+            <h2 style="text-align: center; margin-bottom: 2rem; color: var(--primary);">Admin Login</h2>
             <div class="form-group">
-                <label>Username</label>
+                <label>用户名</label>
                 <input type="text" id="uUser" class="form-input">
             </div>
             <div class="form-group">
-                <label>Password</label>
+                <label>密码</label>
                 <input type="password" id="uPass" class="form-input">
             </div>
-            <button onclick="doLogin()" class="btn btn-primary" style="width: 100%;">Sign In</button>
+            <button onclick="doLogin()" class="btn btn-primary" style="width: 100%; padding: 0.8rem;">登 录</button>
         </div>
     </div>
 
     <!-- 主界面 -->
     <div id="mainDashboard" style="display: none;">
-        <nav class="navbar" style="position: static; margin-bottom: 2rem;">
+        <nav class="navbar" style="margin-bottom: 2rem;">
             <div class="brand">System Admin</div>
             <div>
-                <button onclick="openEditModal()" class="btn btn-primary">+ 新增项目</button>
+                <button onclick="openEditModal()" class="btn btn-primary">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    发布新项目
+                </button>
             </div>
         </nav>
 
-        <div class="container">
-            <div class="card-bg" style="background: white; border-radius: var(--radius); border: 1px solid var(--border); padding: 1.5rem;">
+        <div class="dashboard">
+            <div class="admin-panel">
                 <div class="admin-header">
-                    <h3>项目列表管理</h3>
+                    <h3 style="font-size: 1.1rem;">项目列表</h3>
                     <button onclick="loadProjects()" class="btn btn-outline btn-sm">刷新数据</button>
                 </div>
-
                 <table class="data-table" id="projectTable">
                     <thead>
                         <tr>
-                            <th>项目名称</th>
+                            <th>项目 ID</th>
                             <th>状态</th>
-                            <th>访问权限</th>
+                            <th>类型</th>
                             <th>更新时间</th>
                             <th style="text-align: right;">操作</th>
                         </tr>
                     </thead>
-                    <tbody><!-- JS 填充 --></tbody>
+                    <tbody></tbody>
                 </table>
             </div>
         </div>
@@ -72,79 +65,77 @@
     <!-- 编辑/新增 Modal -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-box">
-            <h3 id="modalTitle" style="margin-bottom: 1.5rem;">新增项目</h3>
+            <h3 id="modalTitle" style="margin-bottom: 1.5rem;">配置项目</h3>
             <form id="uploadForm">
                 <div class="form-group">
-                    <label>文件夹名称 (ID)</label>
-                    <input type="text" name="folderName" id="f_name" class="form-input" required pattern="[A-Za-z0-9\-_]+" placeholder="例: react-demo">
-                    <small style="color: var(--text-muted); font-size: 0.8rem;">唯一标识，不可包含中文或空格。</small>
+                    <label>项目文件夹 ID (英文/数字)</label>
+                    <input type="text" name="folderName" id="f_name" class="form-input" required pattern="[A-Za-z0-9\-_]+" placeholder="例如: react-demo">
                 </div>
 
                 <div class="form-group">
-                    <label>项目文件 (上传以覆盖，留空则只更新设置)</label>
+                    <label>项目文件 <span id="fileHint" style="font-weight: normal; color: var(--text-muted); font-size: 0.8rem;"></span></label>
                     <input type="file" name="files" id="f_files" class="form-input" multiple>
                 </div>
 
-                <div style="display: flex; gap: 2rem; margin-bottom: 1rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <div style="display: flex; gap: 2rem; margin-bottom: 1.5rem;">
+                    <label class="form-check">
                         <input type="checkbox" name="isPublic" id="f_public" value="true" checked> 在首页展示
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <label class="form-check">
                         <input type="checkbox" name="isEncrypted" id="f_encrypted" value="true" onchange="togglePwd()"> 加密项目
                     </label>
                 </div>
 
-                <div id="pwdArea" class="hidden" style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <div id="pwdArea" class="hidden" style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
                     <div class="form-group">
-                        <label>访问密码 (逗号分隔多个)</label>
-                        <input type="text" name="passwords" id="f_passwords" class="form-input" placeholder="123, abc">
+                        <label>访问密码 (多个用逗号隔开)</label>
+                        <input type="text" name="passwords" id="f_passwords" class="form-input">
                     </div>
                     <div class="form-group">
                         <label>相关文章链接</label>
-                        <input type="url" name="articleLink" id="f_link" class="form-input" placeholder="https://...">
+                        <input type="url" name="articleLink" id="f_link" class="form-input">
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
-                    <button type="button" onclick="closeEditModal()" class="btn btn-outline">取消</button>
+                <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button type="button" onclick="document.getElementById('editModal').classList.remove('active')" class="btn btn-outline">取消</button>
                     <button type="submit" id="btnSubmit" class="btn btn-primary">提交保存</button>
                 </div>
-                <div id="statusMsg" style="margin-top: 1rem; text-align: center; font-size: 0.9rem;"></div>
+                <div id="statusMsg" style="margin-top: 1rem; text-align: center; font-size: 0.85rem;"></div>
             </form>
         </div>
     </div>
 
     <script>
-        // --- 核心逻辑 ---
+        let allProjects = [];
 
-        // 1. 初始化
         window.onload = loadProjects;
 
-        // 2. 登录
         async function doLogin() {
             const u = document.getElementById('uUser').value;
             const p = document.getElementById('uPass').value;
-            const res = await fetch('/api/login', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ username: u, password: p })
-            });
-            if (res.ok && (await res.json()).success) {
-                document.getElementById('loginLayer').style.display = 'none';
-                document.getElementById('mainDashboard').style.display = 'block';
-                loadProjects();
-            } else { alert('Login Failed'); }
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                if (res.ok && (await res.json()).success) {
+                    document.getElementById('loginLayer').classList.add('hidden');
+                    document.getElementById('mainDashboard').style.display = 'block';
+                    loadProjects();
+                } else { alert('账号或密码错误'); }
+            } catch(e) { alert('网络错误'); }
         }
 
-        // 3. 加载列表
-        let allProjects = []; // 本地缓存用于填充表单
         async function loadProjects() {
             const res = await fetch('/api/list');
             if (res.status === 401) {
-                document.getElementById('loginLayer').style.display = 'flex';
+                document.getElementById('loginLayer').classList.remove('hidden');
                 document.getElementById('mainDashboard').style.display = 'none';
                 return;
             }
-            document.getElementById('loginLayer').style.display = 'none';
+            // 登录成功状态
+            document.getElementById('loginLayer').classList.add('hidden');
             document.getElementById('mainDashboard').style.display = 'block';
 
             allProjects = await res.json();
@@ -154,12 +145,12 @@
             allProjects.forEach(p => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td style="font-weight: 500;">${p.folder_name}</td>
-                    <td><span class="status-badge ${p.is_public ? 'bg-green' : 'bg-gray'}">${p.is_public ? '已发布' : '隐藏'}</span></td>
-                    <td>${p.is_encrypted ? '🔒 加密' : '🌏 公开'}</td>
-                    <td style="color: var(--text-muted); font-size: 0.85rem;">${new Date(p.updated_at).toLocaleString()}</td>
+                    <td style="font-weight: 600;">${p.folder_name}</td>
+                    <td><span class="badge ${p.is_public ? 'badge-green' : 'badge-gray'}">${p.is_public ? '已发布' : '隐藏'}</span></td>
+                    <td><span class="badge ${p.is_encrypted ? 'badge-red' : 'badge-gray'}">${p.is_encrypted ? '加密' : '公开'}</span></td>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">${new Date(p.updated_at).toLocaleDateString()}</td>
                     <td style="text-align: right;">
-                        <button onclick="editProject('${p.folder_name}')" class="btn btn-outline btn-sm" style="margin-right: 5px;">编辑</button>
+                        <button onclick="editProject('${p.folder_name}')" class="btn btn-outline btn-sm">编辑</button>
                         <button onclick="deleteProject('${p.folder_name}')" class="btn btn-danger btn-sm">删除</button>
                     </td>
                 `;
@@ -167,44 +158,33 @@
             });
         }
 
-        // 4. 编辑/新增 Modal 逻辑
         function openEditModal(mode = 'create', data = null) {
-            const modal = document.getElementById('editModal');
-            const title = document.getElementById('modalTitle');
             const form = document.getElementById('uploadForm');
-            
             form.reset();
             document.getElementById('statusMsg').innerText = '';
             
             if (mode === 'edit' && data) {
-                title.innerText = '编辑项目配置';
+                document.getElementById('modalTitle').innerText = '编辑项目配置';
                 document.getElementById('f_name').value = data.folder_name;
-                document.getElementById('f_name').readOnly = true; // 编辑时不许改ID
+                document.getElementById('f_name').readOnly = true;
                 document.getElementById('f_public').checked = !!data.is_public;
                 document.getElementById('f_encrypted').checked = !!data.is_encrypted;
-                
-                const pwds = JSON.parse(data.passwords || '[]');
-                document.getElementById('f_passwords').value = pwds.join(', ');
+                document.getElementById('f_passwords').value = JSON.parse(data.passwords||'[]').join(', ');
                 document.getElementById('f_link').value = data.article_link || '';
-                
-                // 提示用户
-                document.getElementById('f_files').required = false; // 编辑模式文件可选
+                document.getElementById('fileHint').innerText = '(可选: 上传新文件覆盖)';
+                document.getElementById('f_files').required = false;
             } else {
-                title.innerText = '新建项目';
+                document.getElementById('modalTitle').innerText = '发布新项目';
                 document.getElementById('f_name').readOnly = false;
-                document.getElementById('f_files').required = true; // 新建必须传文件
+                document.getElementById('fileHint').innerText = '(必须上传)';
+                document.getElementById('f_files').required = true;
             }
-            
             togglePwd();
-            modal.classList.add('active');
+            document.getElementById('editModal').classList.add('active');
         }
 
-        function closeEditModal() {
-            document.getElementById('editModal').classList.remove('active');
-        }
-
-        function editProject(folderName) {
-            const p = allProjects.find(i => i.folder_name === folderName);
+        function editProject(name) {
+            const p = allProjects.find(i => i.folder_name === name);
             if (p) openEditModal('edit', p);
         }
 
@@ -213,13 +193,12 @@
             document.getElementById('pwdArea').className = chk.checked ? '' : 'hidden';
         }
 
-        // 5. 提交表单 (新增或更新)
         document.getElementById('uploadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmit');
             const msg = document.getElementById('statusMsg');
             btn.disabled = true;
-            btn.innerText = '处理中...';
+            btn.innerText = '正在处理...';
 
             const formData = new FormData(e.target);
             if(!e.target.isPublic.checked) formData.set('isPublic', 'false');
@@ -229,38 +208,27 @@
                 const res = await fetch('/api/upload', { method: 'POST', body: formData });
                 const result = await res.json();
                 if (res.ok) {
-                    alert('操作成功！');
-                    closeEditModal();
+                    alert('保存成功！');
+                    document.getElementById('editModal').classList.remove('active');
                     loadProjects();
                 } else {
-                    msg.innerText = '失败: ' + (result.message || 'Error');
+                    msg.innerText = '错误: ' + (result.message || 'Error');
                     msg.style.color = 'red';
                 }
-            } catch (err) {
-                msg.innerText = '网络错误';
-            } finally {
-                btn.disabled = false;
-                btn.innerText = '提交保存';
-            }
+            } catch (err) { msg.innerText = '网络错误'; }
+            finally { btn.disabled = false; btn.innerText = '提交保存'; }
         });
 
-        // 6. 删除逻辑
-        async function deleteProject(folderName) {
-            if (!confirm(`确定要删除项目 "${folderName}" 吗？\n注意：这将从展示页移除，但 GitHub 上的文件可能需要手动清理。`)) return;
-
+        async function deleteProject(name) {
+            if (!confirm(`确定要删除项目 "${name}" 吗？\n注意：这将从主页移除入口。`)) return;
             try {
                 const res = await fetch('/api/delete', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ folderName })
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ folderName: name })
                 });
-                if (res.ok) {
-                    alert('删除成功');
-                    loadProjects();
-                } else {
-                    alert('删除失败');
-                }
-            } catch (e) { alert('网络错误'); }
+                if (res.ok) { alert('删除成功'); loadProjects(); }
+                else { alert('删除失败'); }
+            } catch (e) { alert('请求出错'); }
         }
     </script>
 </body>
