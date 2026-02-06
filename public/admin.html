@@ -5,7 +5,23 @@
     <title>Admin Dashboard</title>
     <style>
         body { font-family: sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
-        .login-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; justify-content:center; align-items:center; z-index:999; }
+        
+        /* 登录遮罩层：默认显示 (去掉 hidden)，层级最高，全屏白色背景 */
+        #loginLayer { 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: white; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 999;
+        }
+
+        /* 主界面容器：默认隐藏 */
+        #mainDashboard { display: none; }
+
+        /* 通用样式 */
         .hidden { display: none !important; }
         .panel { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; }
@@ -16,126 +32,149 @@
 </head>
 <body>
 
-    <!-- 登录层 -->
-    <div id="loginLayer" class="login-overlay">
-        <div>
-            <h2>Admin Login</h2>
-            <input type="text" id="uUser" placeholder="Username"><br><br>
-            <input type="password" id="uPass" placeholder="Password"><br><br>
-            <button onclick="doLogin()">Login</button>
+    <!-- 1. 登录弹窗 (默认显示，没有 hidden 类) -->
+    <div id="loginLayer">
+        <div style="text-align: center; border: 1px solid #ccc; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2>管理员登录</h2>
+            <input type="text" id="uUser" placeholder="用户名" style="padding: 8px; margin-bottom: 10px; width: 200px;"><br>
+            <input type="password" id="uPass" placeholder="密码" style="padding: 8px; margin-bottom: 20px; width: 200px;"><br>
+            <button onclick="doLogin()" style="padding: 8px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px;">登录</button>
         </div>
     </div>
 
-    <h1>项目管理后台</h1>
-    
-    <div class="panel">
-        <!-- 左侧：发布表单 -->
-        <div class="card">
-            <h2>发布/更新项目</h2>
-            <form id="uploadForm">
-                <label>文件夹名称 (英文/数字):
-                    <input type="text" name="folderName" required pattern="[A-Za-z0-9\-_]+">
-                </label>
-                
-                <label>上传文件 (index.html, css, js等):
-                    <input type="file" name="files" multiple required>
-                </label>
-
-                <label>
-                    <input type="checkbox" name="isPublic" value="true" checked> 在首页展示
-                </label>
-
-                <label>
-                    <input type="checkbox" name="isEncrypted" id="chkEncrypted" value="true" onchange="togglePwd()"> 需要密码访问
-                </label>
-
-                <div id="pwdArea" class="hidden">
-                    <label>访问密码 (多个用逗号隔开):
-                        <input type="text" name="passwords">
+    <!-- 2. 主界面 (用 div 包裹，默认 display: none) -->
+    <div id="mainDashboard">
+        <h1>项目管理后台</h1>
+        
+        <div class="panel">
+            <!-- 左侧：发布表单 -->
+            <div class="card">
+                <h2>发布/更新项目</h2>
+                <form id="uploadForm">
+                    <label>文件夹名称 (英文/数字):
+                        <input type="text" name="folderName" required pattern="[A-Za-z0-9\-_]+">
                     </label>
-                    <label>相关文章链接:
-                        <input type="url" name="articleLink">
+                    <label>上传文件 (index.html, css, js等):
+                        <input type="file" name="files" multiple required>
                     </label>
-                </div>
+                    <label>
+                        <input type="checkbox" name="isPublic" value="true" checked> 在首页展示
+                    </label>
+                    <label>
+                        <input type="checkbox" name="isEncrypted" id="chkEncrypted" value="true" onchange="togglePwd()"> 需要密码访问
+                    </label>
+                    <div id="pwdArea" class="hidden">
+                        <label>访问密码 (多个用逗号隔开):
+                            <input type="text" name="passwords">
+                        </label>
+                        <label>相关文章链接:
+                            <input type="url" name="articleLink">
+                        </label>
+                    </div>
+                    <br>
+                    <button type="submit" id="btnSubmit">提交并发布</button>
+                    <div id="statusMsg"></div>
+                </form>
+            </div>
 
-                <br>
-                <button type="submit" id="btnSubmit">提交并发布</button>
-                <div id="statusMsg"></div>
-            </form>
-        </div>
-
-        <!-- 右侧：项目列表 -->
-        <div class="card">
-            <h2>现有项目列表</h2>
-            <button onclick="loadProjects()">刷新列表</button>
-            <table id="projectTable">
-                <thead><tr><th>名称</th><th>状态</th><th>加密</th><th>操作</th></tr></thead>
-                <tbody></tbody>
-            </table>
+            <!-- 右侧：项目列表 -->
+            <div class="card">
+                <h2>现有项目列表</h2>
+                <button onclick="loadProjects()">刷新列表</button>
+                <table id="projectTable">
+                    <thead><tr><th>名称</th><th>状态</th><th>加密</th><th>操作</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <script>
-        // 1. 登录逻辑
+        // 页面加载时自动尝试获取列表，验证是否已登录
+        window.onload = function() {
+            loadProjects();
+        };
+
         async function doLogin() {
             const u = document.getElementById('uUser').value;
             const p = document.getElementById('uPass').value;
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ username: u, password: p })
-            });
-            if (res.ok) {
-                document.getElementById('loginLayer').classList.add('hidden');
-                loadProjects();
-            } else {
-                alert('Login Failed');
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.success) {
+                    // 登录成功：隐藏弹窗，显示主界面，加载数据
+                    document.getElementById('loginLayer').classList.add('hidden');
+                    document.getElementById('mainDashboard').style.display = 'block';
+                    loadProjects();
+                } else {
+                    alert('登录失败: ' + (data.message || '未知错误'));
+                }
+            } catch (e) {
+                alert('登录请求出错');
             }
         }
 
         function togglePwd() {
             const chk = document.getElementById('chkEncrypted');
-            const area = document.getElementById('pwdArea');
-            area.className = chk.checked ? '' : 'hidden';
+            document.getElementById('pwdArea').className = chk.checked ? '' : 'hidden';
         }
 
-        // 2. 加载列表
         async function loadProjects() {
+            // 调用受保护的 API
             const res = await fetch('/api/list');
+            
+            // 关键逻辑：如果 API 返回 401，说明未登录，保持弹窗显示
             if (res.status === 401 || res.status === 403) {
                  document.getElementById('loginLayer').classList.remove('hidden');
+                 document.getElementById('mainDashboard').style.display = 'none';
                  return;
             }
-            const data = await res.json();
-            const tbody = document.querySelector('#projectTable tbody');
-            tbody.innerHTML = '';
-            data.forEach(p => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${p.folder_name}</td>
-                    <td>${p.is_public ? '展示' : '隐藏'}</td>
-                    <td>${p.is_encrypted ? '🔐' : '🔓'}</td>
-                    <td><button onclick="fillForm('${p.folder_name}')">更新</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
+
+            // 如果 API 成功，说明已登录（或者是之前的 Cookie 有效）
+            if (res.ok) {
+                const data = await res.json();
+                
+                // 切换界面显示
+                document.getElementById('loginLayer').classList.add('hidden');
+                document.getElementById('mainDashboard').style.display = 'block';
+
+                // 渲染表格
+                const tbody = document.querySelector('#projectTable tbody');
+                tbody.innerHTML = '';
+                data.forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${p.folder_name}</td>
+                        <td>${p.is_public ? '✅' : '❌'}</td>
+                        <td>${p.is_encrypted ? '🔒' : '🔓'}</td>
+                        <td><button onclick="fillForm('${p.folder_name}')">更新</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
         }
 
         function fillForm(name) {
             document.querySelector('[name="folderName"]').value = name;
-            alert('请重新选择文件进行覆盖上传，并检查密码设置。');
+            alert('项目 ' + name + ' 已选中，请重新上传文件以覆盖。');
         }
 
-        // 3. 上传逻辑
+        // 上传表单逻辑
         document.getElementById('uploadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmit');
             const msg = document.getElementById('statusMsg');
             btn.disabled = true;
-            msg.innerText = 'Uploading to GitHub & Updating D1...';
+            msg.innerText = '正在上传到 GitHub 并更新数据库...';
+            msg.style.color = 'blue';
 
             const formData = new FormData(e.target);
-            // 处理 Checkbox
             if(!e.target.isPublic.checked) formData.set('isPublic', 'false');
             if(!e.target.isEncrypted.checked) formData.set('isEncrypted', 'false');
 
@@ -143,14 +182,16 @@
                 const res = await fetch('/api/upload', { method: 'POST', body: formData });
                 const result = await res.json();
                 if (res.ok) {
-                    msg.innerText = 'Success!';
-                    loadProjects();
-                    e.target.reset();
+                    msg.innerText = '发布成功！';
+                    msg.style.color = 'green';
+                    loadProjects(); // 刷新列表
+                    e.target.reset(); // 重置表单
                 } else {
-                    throw new Error(result.message || 'Error');
+                    throw new Error(result.message || '上传失败');
                 }
             } catch (err) {
-                msg.innerText = 'Failed: ' + err.message;
+                msg.innerText = '错误: ' + err.message;
+                msg.style.color = 'red';
             } finally {
                 btn.disabled = false;
             }
