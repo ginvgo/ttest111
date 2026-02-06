@@ -2,7 +2,6 @@
  * functions/api/upload.js
  * 核心逻辑：处理项目发布、文件上传、数据库更新及首页静态重构
  */
-
 // --- 辅助函数：ArrayBuffer 转 Base64 ---
 function arrayBufferToBase64(buffer) {
   let binary = '';
