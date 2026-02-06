@@ -1,0 +1,27 @@
+/* 简单卡片样式 */
+.project-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+#project-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.btn-primary { background: #3b82f6; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; text-decoration: none; border: none; cursor: pointer;}
+.btn-secondary { background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; border: none; cursor: pointer;}
+.hidden { display: none; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
+.modal-content { background: white; padding: 2rem; border-radius: 8px; text-align: center; }
+.card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
