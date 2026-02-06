@@ -8,10 +8,12 @@
 </head>
 <body>
     <nav class="navbar">
-        <a href="/" class="brand">
-            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
-            MyLab
-        </a>
+        <a href="/" class="brand">MyLab</a>
+        <!-- 新增：搜索框 -->
+        <div class="search-box">
+            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" id="searchInput" class="search-input" placeholder="搜索项目..." oninput="filterProjects()">
+        </div>
         <div class="nav-links">
             <a href="#">首页</a>
             <a href="https://github.com/yourname" target="_blank">GitHub</a>
@@ -20,69 +22,114 @@
 
     <div class="container">
         <header style="text-align: center; margin: 4rem 0;">
-            <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--text-main);">探索与创造</h1>
-            <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto;">这里收藏了我所有的实验性项目、工具原型以及技术演示。</p>
+            <h1>探索与创造</h1>
+            <p style="color: var(--text-muted);">这里的每个像素都来自热爱。</p>
         </header>
 
         <main id="project-list" class="project-grid">
             <!-- PROJECT_LIST_START -->
-
-      <article class="project-card">
-        <div class="card-icon"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg></div>
-        <h3 class="card-title">number1</h3>
-        <div class="card-meta">
-            公开演示项目
-        </div>
-        <div class="card-actions">
-          <a href="/projects/number1/index.html" class="btn btn-primary btn-sm">立即访问</a>
-        </div>
-      </article>
-    
-<!-- PROJECT_LIST_END -->
+            <!-- 占位 -->
+            <!-- PROJECT_LIST_END -->
         </main>
     </div>
 
-    <footer style="text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 4rem;">
-        &copy; 2024 MyLab Portfolio. Powered by Cloudflare Pages.
-    </footer>
-
-    <!-- 密码 Modal -->
+    <!-- 增强版密码 Modal -->
     <div id="passwordModal" class="modal-overlay">
         <div class="modal-box">
-            <h3 style="margin-bottom: 0.5rem;">🔒 需要访问权限</h3>
-            <p style="margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">该项目已加密，请输入密码继续。</p>
-            <input type="password" id="accessPassword" class="form-input" placeholder="输入密码..." autofocus>
-            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
-                <button onclick="closeModal()" class="btn btn-outline">取消</button>
-                <button onclick="verifyPassword()" class="btn btn-primary">确认</button>
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="background: #fee2e2; color: #dc2626; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                </div>
+                <h3 id="modalProjectName" style="font-size: 1.25rem;">受限项目</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">
+                    该项目为私有演示，请输入访问密码。<br>
+                    <span style="font-size: 0.8rem; color: #64748b;">(密码请联系管理员或在知识星球获取)</span>
+                </p>
             </div>
-        </div>
-    </div>
 
-    <!-- 知识星球 Modal -->
-    <div id="planetModal" class="modal-overlay">
-        <div class="modal-box" style="text-align: center;">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">🪐</div>
-            <h3 style="margin-bottom: 0.5rem;">加入知识星球</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">获取源码解析与技术支持。</p>
-            <button onclick="document.getElementById('planetModal').classList.remove('active')" class="btn btn-primary" style="width: 100%;">关闭</button>
+            <div class="form-group">
+                <div class="password-wrapper">
+                    <input type="password" id="accessPassword" class="form-input" placeholder="输入密码..." onkeydown="if(event.key==='Enter') verifyPassword()">
+                    <span class="password-toggle" onclick="toggleModalPwd()">
+                        <svg id="modalEye" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    </span>
+                </div>
+                <div id="pwdError" style="color: #ef4444; font-size: 0.85rem; margin-top: 0.5rem; display: none;">密码错误，请重试</div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                <button onclick="closeModal()" class="btn btn-outline" style="flex: 1;">取消</button>
+                <button onclick="verifyPassword()" class="btn btn-primary" style="flex: 1;">验证进入</button>
+            </div>
         </div>
     </div>
 
     <script src="js/main.js"></script>
     <script>
-        // 简单的 Modal 控制增强
+        // 前端逻辑
         function openModal(id) { document.getElementById(id).classList.add('active'); }
-        function closeModal() { document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active')); }
-        
-        // 兼容原 main.js 调用
+        function closeModal() { 
+            document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+            document.getElementById('pwdError').style.display = 'none'; 
+        }
+
+        // 搜索功能
+        function filterProjects() {
+            const val = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('.project-card');
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name');
+                if (name && name.includes(val)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // 密码切换
+        function toggleModalPwd() {
+            const input = document.getElementById('accessPassword');
+            const icon = document.getElementById('modalEye');
+            if(input.type === 'password') {
+                input.type = 'text';
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>';
+            } else {
+                input.type = 'password';
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>';
+            }
+        }
+
+        // 覆盖 main.js 的入口
         function handleAccess(folder, isEncrypted) {
             if(!isEncrypted) { window.location.href=`/projects/${folder}/index.html`; return; }
             window.currentFolder = folder;
+            // 设置标题
+            document.getElementById('modalProjectName').innerText = folder;
             document.getElementById('accessPassword').value = '';
+            document.getElementById('pwdError').style.display = 'none';
             openModal('passwordModal');
         }
-        function showPlanetInfo() { openModal('planetModal'); }
+
+        async function verifyPassword() {
+            const password = document.getElementById('accessPassword').value;
+            if (!password) return;
+
+            const res = await fetch('/api/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folderName: window.currentFolder, password })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                // BUG 修复：确保跳转
+                window.location.href = `/projects/${window.currentFolder}/index.html`;
+            } else {
+                // 显示错误信息
+                document.getElementById('pwdError').style.display = 'block';
+            }
+        }
     </script>
 </body>
 </html>
