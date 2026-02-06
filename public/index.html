@@ -28,13 +28,15 @@
             <!-- PROJECT_LIST_START -->
 
       <article class="project-card">
-        <div class="card-icon"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg></div>
+        <div class="card-icon locked"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div>
         <h3 class="card-title">number1</h3>
         <div class="card-meta">
-            公开演示项目
+            需要密码访问
         </div>
         <div class="card-actions">
-          <a href="/projects/number1/index.html" class="btn btn-primary btn-sm">立即访问</a>
+          <button onclick="handleAccess('number1', true)" class="btn btn-primary btn-sm">访问</button>
+          <button onclick="showPlanetInfo()" class="btn btn-outline btn-sm">知识星球</button>
+          
         </div>
       </article>
     
