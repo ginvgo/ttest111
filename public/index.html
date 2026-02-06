@@ -3,41 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的项目展示</title>
+    <title>项目展示门户</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <h1>Project Portfolio</h1>
-    </header>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <a href="/" class="brand">MyPortfolio</a>
+        <div class="nav-links">
+            <a href="#">首页</a>
+            <a href="#">关于我</a>
+            <a href="https://github.com/yourname" target="_blank">GitHub</a>
+        </div>
+    </nav>
 
-    <main id="project-list">
-        <!-- PROJECT_LIST_START -->
+    <div class="container">
+        <header style="text-align: center; margin: 4rem 0;">
+            <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">精选项目集</h1>
+            <p style="color: var(--text-muted);">探索我的代码、实验和产品原型。</p>
+        </header>
 
-<!-- PROJECT_LIST_END -->
-    </main>
+        <main id="project-list" class="project-grid">
+            <!-- PROJECT_LIST_START -->
+            <!-- 占位符，将被后端替换 -->
+            <div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: var(--text-muted); background: white; border-radius: 12px; border: 1px dashed var(--border);">
+                暂无公开项目，请前往后台发布。
+            </div>
+            <!-- PROJECT_LIST_END -->
+        </main>
+    </div>
 
-    <!-- 密码验证 Modal -->
-    <div id="passwordModal" class="modal hidden">
-        <div class="modal-content">
-            <h3>请输入访问密码</h3>
-            <input type="password" id="accessPassword" placeholder="Password">
-            <div class="modal-btns">
-                <button onclick="closeModal()">取消</button>
-                <button onclick="verifyPassword()">确认</button>
+    <footer style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem; margin-top: 4rem; border-top: 1px solid var(--border);">
+        &copy; 2024 MyPortfolio. Built with Cloudflare Pages.
+    </footer>
+
+    <!-- 密码 Modal -->
+    <div id="passwordModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="margin-bottom: 1rem;">🔒 受限访问</h3>
+            <p style="margin-bottom: 1.5rem; color: var(--text-muted);">该项目已加密，请输入访问密码。</p>
+            <input type="password" id="accessPassword" class="form-input" placeholder="输入密码..." autofocus>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
+                <button onclick="closeModal()" class="btn btn-outline">取消</button>
+                <button onclick="verifyPassword()" class="btn btn-primary">验证进入</button>
             </div>
         </div>
     </div>
 
     <!-- 知识星球 Modal -->
-    <div id="planetModal" class="modal hidden">
-        <div class="modal-content">
-            <h3>加入知识星球</h3>
-            <p>获取更多源码解析与技术支持。</p>
-            <button onclick="document.getElementById('planetModal').classList.add('hidden')">关闭</button>
+    <div id="planetModal" class="modal-overlay">
+        <div class="modal-box" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🪐</div>
+            <h3 style="margin-bottom: 0.5rem;">加入知识星球</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">获取项目源码、技术文档及一对一答疑。</p>
+            <button onclick="document.getElementById('planetModal').classList.remove('active')" class="btn btn-primary" style="width: 100%;">我知道了</button>
         </div>
     </div>
 
     <script src="js/main.js"></script>
+    <script>
+        // 简单的 Modal 控制增强
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal() { document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active')); }
+        // 兼容原有的 JS 逻辑调用
+        function handleAccess(folder, isEncrypted) {
+            if(!isEncrypted) { window.location.href=`/projects/${folder}/index.html`; return; }
+            window.currentFolder = folder;
+            openModal('passwordModal');
+        }
+        function showPlanetInfo() { openModal('planetModal'); }
+    </script>
 </body>
 </html>
