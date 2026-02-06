@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的项目展示</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Project Portfolio</h1>
+    </header>
+
+    <main id="project-list">
+        <!-- PROJECT_LIST_START -->
+        <!-- 后端将自动替换这里的内容，请勿手动删除这两行注释 -->
+        <p style="text-align:center; color: #666;">暂无项目展示，请在后台添加。</p>
+        <!-- PROJECT_LIST_END -->
+    </main>
+
+    <!-- 密码验证 Modal -->
+    <div id="passwordModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>请输入访问密码</h3>
+            <input type="password" id="accessPassword" placeholder="Password">
+            <div class="modal-btns">
+                <button onclick="closeModal()">取消</button>
+                <button onclick="verifyPassword()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 知识星球 Modal -->
+    <div id="planetModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>加入知识星球</h3>
+            <p>获取更多源码解析与技术支持。</p>
+            <button onclick="document.getElementById('planetModal').classList.add('hidden')">关闭</button>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
