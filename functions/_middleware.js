@@ -30,3 +30,19 @@ export async function onRequest(context) {
   // 放行其他请求（包括 admin.html）
   return context.next();
 }
+
+export async function onRequest(context) {
+  const url = new URL(context.request.url);
+  // 加入 /api/delete
+  const protectedPaths = ['/api/upload', '/api/list', '/api/delete']; 
+  const isProtected = protectedPaths.some(path => url.pathname.startsWith(path));
+
+  if (isProtected) {
+    const cookie = context.request.headers.get('Cookie');
+    const envSession = context.env.ADMIN_SESSION_SECRET; 
+    if (!cookie || !cookie.includes(`admin_session=${envSession}`)) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
+  }
+  return context.next();
+}
