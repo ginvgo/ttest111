@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
+        .login-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:white; display:flex; justify-content:center; align-items:center; z-index:999; }
+        .hidden { display: none !important; }
+        .panel { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; }
+        form label { display: block; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+
+    <!-- 登录层 -->
+    <div id="loginLayer" class="login-overlay">
+        <div>
+            <h2>Admin Login</h2>
+            <input type="text" id="uUser" placeholder="Username"><br><br>
+            <input type="password" id="uPass" placeholder="Password"><br><br>
+            <button onclick="doLogin()">Login</button>
+        </div>
+    </div>
+
+    <h1>项目管理后台</h1>
+    
+    <div class="panel">
+        <!-- 左侧：发布表单 -->
+        <div class="card">
+            <h2>发布/更新项目</h2>
+            <form id="uploadForm">
+                <label>文件夹名称 (英文/数字):
+                    <input type="text" name="folderName" required pattern="[A-Za-z0-9\-_]+">
+                </label>
+                
+                <label>上传文件 (index.html, css, js等):
+                    <input type="file" name="files" multiple required>
+                </label>
+
+                <label>
+                    <input type="checkbox" name="isPublic" value="true" checked> 在首页展示
+                </label>
+
+                <label>
+                    <input type="checkbox" name="isEncrypted" id="chkEncrypted" value="true" onchange="togglePwd()"> 需要密码访问
+                </label>
+
+                <div id="pwdArea" class="hidden">
+                    <label>访问密码 (多个用逗号隔开):
+                        <input type="text" name="passwords">
+                    </label>
+                    <label>相关文章链接:
+                        <input type="url" name="articleLink">
+                    </label>
+                </div>
+
+                <br>
+                <button type="submit" id="btnSubmit">提交并发布</button>
+                <div id="statusMsg"></div>
+            </form>
+        </div>
+
+        <!-- 右侧：项目列表 -->
+        <div class="card">
+            <h2>现有项目列表</h2>
+            <button onclick="loadProjects()">刷新列表</button>
+            <table id="projectTable">
+                <thead><tr><th>名称</th><th>状态</th><th>加密</th><th>操作</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 1. 登录逻辑
+        async function doLogin() {
+            const u = document.getElementById('uUser').value;
+            const p = document.getElementById('uPass').value;
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: u, password: p })
+            });
+            if (res.ok) {
+                document.getElementById('loginLayer').classList.add('hidden');
+                loadProjects();
+            } else {
+                alert('Login Failed');
+            }
+        }
+
+        function togglePwd() {
+            const chk = document.getElementById('chkEncrypted');
+            const area = document.getElementById('pwdArea');
+            area.className = chk.checked ? '' : 'hidden';
+        }
+
+        // 2. 加载列表
+        async function loadProjects() {
+            const res = await fetch('/api/list');
+            if (res.status === 401 || res.status === 403) {
+                 document.getElementById('loginLayer').classList.remove('hidden');
+                 return;
+            }
+            const data = await res.json();
+            const tbody = document.querySelector('#projectTable tbody');
+            tbody.innerHTML = '';
+            data.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${p.folder_name}</td>
+                    <td>${p.is_public ? '展示' : '隐藏'}</td>
+                    <td>${p.is_encrypted ? '🔐' : '🔓'}</td>
+                    <td><button onclick="fillForm('${p.folder_name}')">更新</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function fillForm(name) {
+            document.querySelector('[name="folderName"]').value = name;
+            alert('请重新选择文件进行覆盖上传，并检查密码设置。');
+        }
+
+        // 3. 上传逻辑
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmit');
+            const msg = document.getElementById('statusMsg');
+            btn.disabled = true;
+            msg.innerText = 'Uploading to GitHub & Updating D1...';
+
+            const formData = new FormData(e.target);
+            // 处理 Checkbox
+            if(!e.target.isPublic.checked) formData.set('isPublic', 'false');
+            if(!e.target.isEncrypted.checked) formData.set('isEncrypted', 'false');
+
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                const result = await res.json();
+                if (res.ok) {
+                    msg.innerText = 'Success!';
+                    loadProjects();
+                    e.target.reset();
+                } else {
+                    throw new Error(result.message || 'Error');
+                }
+            } catch (err) {
+                msg.innerText = 'Failed: ' + err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
