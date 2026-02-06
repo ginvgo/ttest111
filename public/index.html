@@ -3,49 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目展示门户</title>
+    <title>我的项目集</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 导航栏 -->
     <nav class="navbar">
-        <a href="/" class="brand">MyPortfolio</a>
+        <a href="/" class="brand">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+            MyLab
+        </a>
         <div class="nav-links">
             <a href="#">首页</a>
-            <a href="#">关于我</a>
             <a href="https://github.com/yourname" target="_blank">GitHub</a>
         </div>
     </nav>
 
     <div class="container">
         <header style="text-align: center; margin: 4rem 0;">
-            <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">精选项目集</h1>
-            <p style="color: var(--text-muted);">探索我的代码、实验和产品原型。</p>
+            <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--text-main);">探索与创造</h1>
+            <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto;">这里收藏了我所有的实验性项目、工具原型以及技术演示。</p>
         </header>
 
         <main id="project-list" class="project-grid">
             <!-- PROJECT_LIST_START -->
-            <!-- 占位符，将被后端替换 -->
-            <div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: var(--text-muted); background: white; border-radius: 12px; border: 1px dashed var(--border);">
-                暂无公开项目，请前往后台发布。
+            <!-- 占位符 -->
+            <div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: var(--text-muted); border: 2px dashed var(--border); border-radius: var(--radius);">
+                暂无项目，请在后台发布。
             </div>
             <!-- PROJECT_LIST_END -->
         </main>
     </div>
 
-    <footer style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem; margin-top: 4rem; border-top: 1px solid var(--border);">
-        &copy; 2024 MyPortfolio. Built with Cloudflare Pages.
+    <footer style="text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 4rem;">
+        &copy; 2024 MyLab Portfolio. Powered by Cloudflare Pages.
     </footer>
 
     <!-- 密码 Modal -->
     <div id="passwordModal" class="modal-overlay">
         <div class="modal-box">
-            <h3 style="margin-bottom: 1rem;">🔒 受限访问</h3>
-            <p style="margin-bottom: 1.5rem; color: var(--text-muted);">该项目已加密，请输入访问密码。</p>
+            <h3 style="margin-bottom: 0.5rem;">🔒 需要访问权限</h3>
+            <p style="margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">该项目已加密，请输入密码继续。</p>
             <input type="password" id="accessPassword" class="form-input" placeholder="输入密码..." autofocus>
             <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
                 <button onclick="closeModal()" class="btn btn-outline">取消</button>
-                <button onclick="verifyPassword()" class="btn btn-primary">验证进入</button>
+                <button onclick="verifyPassword()" class="btn btn-primary">确认</button>
             </div>
         </div>
     </div>
@@ -55,8 +56,8 @@
         <div class="modal-box" style="text-align: center;">
             <div style="font-size: 3rem; margin-bottom: 1rem;">🪐</div>
             <h3 style="margin-bottom: 0.5rem;">加入知识星球</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">获取项目源码、技术文档及一对一答疑。</p>
-            <button onclick="document.getElementById('planetModal').classList.remove('active')" class="btn btn-primary" style="width: 100%;">我知道了</button>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">获取源码解析与技术支持。</p>
+            <button onclick="document.getElementById('planetModal').classList.remove('active')" class="btn btn-primary" style="width: 100%;">关闭</button>
         </div>
     </div>
 
@@ -65,10 +66,12 @@
         // 简单的 Modal 控制增强
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal() { document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active')); }
-        // 兼容原有的 JS 逻辑调用
+        
+        // 兼容原 main.js 调用
         function handleAccess(folder, isEncrypted) {
             if(!isEncrypted) { window.location.href=`/projects/${folder}/index.html`; return; }
             window.currentFolder = folder;
+            document.getElementById('accessPassword').value = '';
             openModal('passwordModal');
         }
         function showPlanetInfo() { openModal('planetModal'); }
