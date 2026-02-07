@@ -82,7 +82,10 @@
                 <div class="sidebar-header" style="flex-direction: column; gap: 10px; padding: 1.2rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-weight: 700; color: #334155;">项目列表</span>
-                        <button onclick="initCreateMode()" class="btn btn-primary btn-sm" title="新建项目">+</button>
+                        <div style="display:flex; gap:5px;">
+                            <button onclick="openSettings()" class="btn btn-outline btn-sm" title="全局设置">⚙️</button>
+                            <button onclick="initCreateMode()" class="btn btn-primary btn-sm" title="新建项目">+</button>
+                        </div>
                     </div>
                     <div class="search-box" style="width: 100%;">
                         <input type="text" id="adminSearch" class="search-input" placeholder="搜索 ID..." oninput="renderList()" style="padding-left: 1rem;">
@@ -220,6 +223,20 @@
             <div class="modal-actions">
                 <button onclick="closeConfirmModal()" class="btn btn-outline">取消</button>
                 <button id="btnConfirmAction" class="btn btn-danger">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 class="modal-title">全局设置</h3>
+            <div class="form-group">
+                <label>每页展示项目数量</label>
+                <input type="number" id="settingPageSize" class="form-input" min="1" max="100">
+            </div>
+            <div class="modal-actions">
+                <button onclick="document.getElementById('settingsModal').classList.remove('active')" class="btn btn-outline">取消</button>
+                <button onclick="saveSettings()" class="btn btn-primary">保存</button>
             </div>
         </div>
     </div>
@@ -395,6 +412,7 @@
             
             document.getElementById('uploadForm').reset();
             document.getElementById('f_name').readOnly = false;
+            document.getElementById('f_projectName').value = ''; // Reset Project Name
             document.getElementById('fileHint').innerText = '(必须上传)';
             document.getElementById('f_files').required = true;
             document.getElementById('projectJsFiles').innerHTML = '<option disabled>请先保存项目</option>';
@@ -571,6 +589,111 @@
         document.getElementById('btnConfirmAction').onclick = () => {
             if(confirmCallback) confirmCallback();
             closeConfirmModal();
+        }
+        // ============ 全局设置 ============
+        async function openSettings() {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                document.getElementById('settingPageSize').value = data.pageSize;
+                document.getElementById('settingsModal').classList.add('active');
+            } catch(e) { showToast('加载设置失败', 'error'); }
+        }
+
+        async function saveSettings() {
+            const pageSize = document.getElementById('settingPageSize').value;
+            try {
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ pageSize })
+                });
+                if(res.ok) {
+                    showToast('设置已保存');
+                    document.getElementById('settingsModal').classList.remove('active');
+                } else showToast('保存失败', 'error');
+            } catch(e) { showToast('保存失败', 'error'); }
+        }
+
+        // ============ JS Lib 管理 ============
+        async function loadCommonLibs() {
+            const presets = {
+                'jquery': 'jQuery',
+                'vue': 'Vue 2',
+                'react': 'React 17',
+                'axios': 'Axios',
+                'lodash': 'Lodash'
+            };
+            
+            const grid = document.getElementById('commonLibGrid');
+            grid.innerHTML = '<div style="color:#999; font-size:0.8rem;">Loading...</div>';
+
+            try {
+                // Fetch uploaded libs
+                const res = await fetch('/api/libs');
+                const uploaded = res.ok ? await res.json() : [];
+                
+                grid.innerHTML = '';
+                
+                // Render Presets
+                for(let [k, v] of Object.entries(presets)) {
+                    const lbl = document.createElement('label');
+                    lbl.className = 'lib-item';
+                    lbl.innerHTML = `<input type="checkbox" name="libs" value="${k}"> ${v}`;
+                    grid.appendChild(lbl);
+                }
+
+                // Render Uploaded
+                uploaded.forEach(f => {
+                    const lbl = document.createElement('label');
+                    lbl.className = 'lib-item';
+                    lbl.style.background = '#f0fdf4';
+                    lbl.style.borderColor = '#bbf7d0';
+                    // Value is full path or just name? 
+                    // upload.js logic: if value matches preset key, uses preset CDN.
+                    // If not, we need to handle it.
+                    // Currently upload.js only knows PRESET_LIBS.
+                    // We need to update upload.js to handle custom libs path if we want "automatic injection".
+                    // For now, let's assume we pass the full URL or relative path?
+                    // The user wants "Automatic Injection".
+                    // If I pass "jquery", upload.js injects CDN.
+                    // If I pass "mylib.js", upload.js doesn't know what to do.
+                    // I need to update upload.js inject logic to handle uploaded libs.
+                    // Let's assume the value is `public/libs/${f}`.
+                    lbl.innerHTML = `<input type="checkbox" name="libs" value="/libs/${f}"> ${f}`;
+                    grid.appendChild(lbl);
+                });
+
+            } catch(e) {
+                console.error(e);
+                grid.innerHTML = '加载失败';
+            }
+        }
+
+        function triggerLibUpload() {
+            document.getElementById('libUploadInput').click();
+        }
+
+        async function doUploadLib(input) {
+            if(!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                showToast('正在上传库...', 'info');
+                const res = await fetch('/api/libs', { method: 'POST', body: formData });
+                if(res.ok) {
+                    showToast('上传成功');
+                    loadCommonLibs();
+                } else {
+                    showToast('上传失败', 'error');
+                }
+            } catch(e) {
+                showToast('上传出错', 'error');
+            }
+            input.value = ''; // reset
         }
     </script>
 </body>
