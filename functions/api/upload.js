@@ -48,46 +48,48 @@ export async function onRequestPost(context) {
   const { request, env } = context;
   
   // === Auto Migration: Ensure columns exist ===
-  // This is a temporary safety measure for existing databases
   try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN project_name TEXT").run(); } catch(e) {}
   try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN injected_libs TEXT").run(); } catch(e) {}
   try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN remember_days INTEGER DEFAULT 30").run(); } catch(e) {}
+  try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN icon_url TEXT").run(); } catch(e) {}
+  try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN extra_buttons TEXT").run(); } catch(e) {} // JSON string
   try { 
-      // Also ensure app_settings table exists
       await env.DB.prepare(`CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)`).run();
-      // Insert default page_size if not exists
       await env.DB.prepare(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('page_size', '12')`).run();
   } catch(e) {}
   // ============================================
 
   const contentType = request.headers.get('content-type') || '';
-  
-  let folderName, projectName, isPublic, isEncrypted, passwords, articleLink, injectedLibs, rememberDays;
+  let folderName, projectName, isPublic, isEncrypted, passwords, articleLink, injectedLibs, rememberDays, iconUrl, extraButtons;
+
   let filesToUpload = [];
   let isCodeEditMode = false;
 
-  // 1. 解析请求数据
   if (contentType.includes('application/json')) {
-    // === 模式 A: 代码编辑器保存 ===
-    isCodeEditMode = true;
-    const body = await request.json();
-    folderName = body.folderName;
-    
-    // 构造虚拟文件对象 (Text mode)
-    filesToUpload = [{ name: body.fileName, content: body.content, isText: true }]; 
-    
-    // 获取现有配置以保持不变
-    const currentProject = await env.DB.prepare('SELECT * FROM projects WHERE folder_name = ?').bind(folderName).first();
-    if(!currentProject) return new Response('Project not found', {status: 404});
-    
-    // 保持原有配置
-    projectName = currentProject.project_name; // Keep existing name
-    isPublic = currentProject.is_public;
-    isEncrypted = currentProject.is_encrypted;
-    passwords = currentProject.passwords;
-    articleLink = currentProject.article_link;
-    injectedLibs = currentProject.injected_libs;
-    rememberDays = currentProject.remember_days;
+      // JSON mode (Code Editor Save)
+      const data = await request.json();
+      
+      // === 模式 A: 代码编辑器保存 ===
+      isCodeEditMode = true;
+      folderName = data.folderName;
+      
+      // 构造虚拟文件对象 (Text mode)
+      filesToUpload = [{ name: data.fileName, content: data.content, isText: true }]; 
+      
+      // 获取现有配置以保持不变
+      const currentProject = await env.DB.prepare('SELECT * FROM projects WHERE folder_name = ?').bind(folderName).first();
+      if(!currentProject) return new Response('Project not found', {status: 404});
+      
+      // 保持原有配置
+      projectName = currentProject.project_name;
+      isPublic = currentProject.is_public;
+      isEncrypted = currentProject.is_encrypted;
+      passwords = currentProject.passwords;
+      articleLink = currentProject.article_link;
+      injectedLibs = currentProject.injected_libs;
+      rememberDays = currentProject.remember_days;
+      iconUrl = currentProject.icon_url;
+      extraButtons = currentProject.extra_buttons;
 
   } else {
     // === 模式 B: 表单上传/配置更新 ===
@@ -101,6 +103,8 @@ export async function onRequestPost(context) {
     articleLink = formData.get('articleLink') || '';
     injectedLibs = formData.get('injectedLibs') || '{}'; // JSON Object String
     rememberDays = parseInt(formData.get('rememberDays') || '30');
+    iconUrl = formData.get('iconUrl') || '';
+    extraButtons = formData.get('extraButtons') || '[]';
 
     const rawFiles = formData.getAll('files');
     for (const f of rawFiles) {
@@ -163,8 +167,8 @@ export async function onRequestPost(context) {
   // 3. 更新数据库 (仅在非代码编辑模式下更新元数据)
   if (!isCodeEditMode) {
       await env.DB.prepare(`
-        INSERT INTO projects (folder_name, project_name, is_public, is_encrypted, passwords, article_link, injected_libs, remember_days, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        INSERT INTO projects (folder_name, project_name, is_public, is_encrypted, passwords, article_link, injected_libs, remember_days, icon_url, extra_buttons, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         ON CONFLICT(folder_name) DO UPDATE SET
             project_name = excluded.project_name,
             is_public = excluded.is_public,
@@ -173,12 +177,10 @@ export async function onRequestPost(context) {
             article_link = excluded.article_link,
             injected_libs = excluded.injected_libs,
             remember_days = excluded.remember_days,
+            icon_url = excluded.icon_url,
+            extra_buttons = excluded.extra_buttons,
             updated_at = datetime('now')
-      `).bind(folderName, projectName, isPublic, isEncrypted, passwords, articleLink, injectedLibs, rememberDays).run();
-
-      // 更新首页 - No longer needed as index.html is dynamic
-      // try { await updateIndexHtml(env); } 
-      // catch (e) { return new Response(e.message, {status: 500}); }
+      `).bind(folderName, projectName, isPublic, isEncrypted, passwords, articleLink, injectedLibs, rememberDays, iconUrl, extraButtons).run();
   }
 
   return new Response(JSON.stringify({ success: true }));
