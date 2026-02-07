@@ -42,15 +42,16 @@ export async function onRequestGet(context) {
   
   const { results } = await env.DB.prepare(query).bind(...finalParams).all();
   const totalRes = await env.DB.prepare(countQuery).bind(...params).first();
-  const total = totalRes.total;
+  const total = totalRes ? totalRes.total : 0;
 
-  const items = results.map(p => ({
+  const items = (results || []).map(p => ({
       folder_name: p.folder_name,
       project_name: p.project_name || p.folder_name, // 优先使用中文名
       is_public: !!p.is_public,
       is_encrypted: !!p.is_encrypted,
       has_article: !!p.article_link,
       icon_url: p.icon_url,
+      remember_days: p.remember_days,
       extra_buttons: p.extra_buttons // JSON string, frontend needs to parse
   }));
 
