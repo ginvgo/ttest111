@@ -147,21 +147,22 @@ export async function onRequestPost(context) {
   // 3. 更新数据库 (仅在非代码编辑模式下更新元数据)
   if (!isCodeEditMode) {
       await env.DB.prepare(`
-        INSERT INTO projects (folder_name, is_public, is_encrypted, passwords, article_link, injected_libs, remember_days, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        INSERT INTO projects (folder_name, project_name, is_public, is_encrypted, passwords, article_link, injected_libs, remember_days, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         ON CONFLICT(folder_name) DO UPDATE SET
-        is_public = excluded.is_public,
-        is_encrypted = excluded.is_encrypted,
-        passwords = excluded.passwords,
-        article_link = excluded.article_link,
-        injected_libs = excluded.injected_libs,
-        remember_days = excluded.remember_days,
-        updated_at = excluded.updated_at
-      `).bind(folderName, isPublic, isEncrypted, passwords, articleLink, injectedLibs, rememberDays).run();
+            project_name = excluded.project_name,
+            is_public = excluded.is_public,
+            is_encrypted = excluded.is_encrypted,
+            passwords = excluded.passwords,
+            article_link = excluded.article_link,
+            injected_libs = excluded.injected_libs,
+            remember_days = excluded.remember_days,
+            updated_at = datetime('now')
+      `).bind(folderName, projectName, isPublic, isEncrypted, passwords, articleLink, injectedLibs, rememberDays).run();
 
-      // 更新首页
-      try { await updateIndexHtml(env); } 
-      catch (e) { return new Response(e.message, {status: 500}); }
+      // 更新首页 - No longer needed as index.html is dynamic
+      // try { await updateIndexHtml(env); } 
+      // catch (e) { return new Response(e.message, {status: 500}); }
   }
 
   return new Response(JSON.stringify({ success: true }));
@@ -178,10 +179,15 @@ function injectScripts(htmlContent, libsJson) {
 
     let injection = '\n<!-- Injected Libs -->\n';
     
-    // 1. 预设库
+    // 1. 预设库 & Custom Shared Libs
     if(config.presets) {
         config.presets.forEach(lib => {
-            if(PRESET_LIBS[lib]) injection += PRESET_LIBS[lib] + '\n';
+            if(PRESET_LIBS[lib]) {
+                injection += PRESET_LIBS[lib] + '\n';
+            } else if (lib.startsWith('/libs/')) {
+                 // Shared Libs (absolute path)
+                 injection += `<script src="${lib}"></script>\n`;
+            }
         });
     }
 
@@ -207,61 +213,3 @@ function injectScripts(htmlContent, libsJson) {
     }
 }
 
-// ... updateIndexHtml (同前，必须保留) ...
-async function updateIndexHtml(env) {
-    // 这里的逻辑与之前完全一致，负责更新 index.html 的卡片列表
-    // 请将之前的 updateIndexHtml 完整代码粘贴于此
-    // 略微修改: 添加 data-name 用于搜索
-     const { results } = await env.DB.prepare('SELECT * FROM projects WHERE is_public = 1 ORDER BY updated_at DESC').all();
-
-  let cardsHtml = '';
-  for (const p of results) {
-    const isLocked = p.is_encrypted === 1;
-    const iconClass = isLocked ? 'card-icon locked' : 'card-icon';
-    const iconSvg = isLocked 
-      ? `<svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>`
-      : `<svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>`;
-
-    let actions = '';
-    if (isLocked) {
-        actions = `
-          <button onclick="handleAccess('${p.folder_name}', true)" class="btn btn-primary btn-sm">访问</button>
-          <button onclick="showPlanetInfo()" class="btn btn-outline btn-sm">知识星球</button>
-          ${p.article_link ? `<a href="${p.article_link}" target="_blank" class="btn btn-outline btn-sm">文章</a>` : ''}
-        `;
-    } else {
-        actions = `
-          <a href="/projects/${p.folder_name}/index.html" class="btn btn-primary btn-sm">立即访问</a>
-        `;
-    }
-
-    // 增加 data-name
-    cardsHtml += `
-      <article class="project-card" data-name="${p.folder_name.toLowerCase()}">
-        <div class="${iconClass}">${iconSvg}</div>
-        <h3 class="card-title">${p.folder_name}</h3>
-        <div class="card-meta">
-            ${isLocked ? '需要密码访问' : '公开演示项目'}
-        </div>
-        <div class="card-actions">${actions}</div>
-      </article>
-    `;
-  }
-
-  const indexPath = 'public/index.html';
-  const res = await githubRequest(env, 'GET', indexPath);
-  if (!res.ok) throw new Error('Cannot fetch index.html');
-  const data = await res.json();
-  const oldContent = new TextDecoder().decode(Uint8Array.from(atob(data.content.replace(/\n/g, '')), c => c.charCodeAt(0)));
-  const startMarker = '<!-- PROJECT_LIST_START -->';
-  const endMarker = '<!-- PROJECT_LIST_END -->';
-  const regex = new RegExp(`${startMarker}[\\s\\S]*?${endMarker}`);
-  const newContent = oldContent.replace(regex, `${startMarker}\n${cardsHtml}\n${endMarker}`);
-  const payload = {
-    message: 'Update project list via Admin',
-    content: utf8ToBase64(newContent),
-    sha: data.sha,
-    branch: env.GITHUB_BRANCH || 'main'
-  };
-  await githubRequest(env, 'PUT', indexPath, payload);
-}
