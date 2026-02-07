@@ -47,12 +47,40 @@ const PRESET_LIBS = {
 export async function onRequestPost(context) {
   const { request, env } = context;
   
-  // === Auto Migration: Ensure columns exist ===
-  try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN project_name TEXT").run(); } catch(e) {}
-  try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN injected_libs TEXT").run(); } catch(e) {}
-  try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN remember_days INTEGER DEFAULT 30").run(); } catch(e) {}
-  try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN icon_url TEXT").run(); } catch(e) {}
-  try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN extra_buttons TEXT").run(); } catch(e) {} // JSON string
+  // === Auto Migration: Ensure Table and Columns exist ===
+  try {
+    await env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        folder_name TEXT UNIQUE,
+        project_name TEXT,
+        is_public INTEGER DEFAULT 1,
+        is_encrypted INTEGER DEFAULT 0,
+        passwords TEXT,
+        article_link TEXT,
+        injected_libs TEXT,
+        remember_days INTEGER DEFAULT 30,
+        icon_url TEXT,
+        extra_buttons TEXT,
+        updated_at DATETIME
+      )
+    `).run();
+  } catch (e) { console.error('Create table error:', e); }
+
+  // Defensive ALTERs for existing tables
+  const columnsToAdd = [
+      "project_name TEXT",
+      "injected_libs TEXT",
+      "remember_days INTEGER DEFAULT 30",
+      "icon_url TEXT",
+      "extra_buttons TEXT",
+      "updated_at DATETIME"
+  ];
+
+  for (const col of columnsToAdd) {
+      try { await env.DB.prepare(`ALTER TABLE projects ADD COLUMN ${col}`).run(); } catch(e) {}
+  }
+
   try { 
       await env.DB.prepare(`CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)`).run();
       await env.DB.prepare(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('page_size', '12')`).run();
