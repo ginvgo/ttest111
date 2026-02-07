@@ -6,7 +6,7 @@
     <title>Project Hub</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* 搜索结果悬浮提示 */
+        /* 搜索下拉 */
         .search-wrapper { position: relative; max-width: 400px; width: 100%; }
         .search-results-popover {
             position: absolute; top: 100%; left: 0; width: 100%;
@@ -17,27 +17,24 @@
         .search-item { padding: 0.5rem 1rem; cursor: pointer; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
         .search-item:last-child { border-bottom: none; }
         .search-item:hover { background: #f8fafc; color: var(--primary); }
-        .search-highlight { font-weight: bold; color: var(--primary); }
-
+        
         /* 分页器 */
         .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 3rem; margin-bottom: 2rem; }
         .page-btn { padding: 6px 14px; border: 1px solid var(--border); background: white; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
         .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .page-btn:hover:not(.active) { background: #f8fafc; border-color: #cbd5e1; }
+        .page-btn:hover:not(.active) { background: #f8fafc; }
     </style>
 </head>
 <body>
     <nav class="navbar">
         <a href="/" class="brand">ProjectHub</a>
         
-        <!-- 搜索区域 -->
         <div class="search-wrapper">
             <div class="search-box">
                 <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 <input type="text" id="searchInput" class="search-input" placeholder="全局搜索项目..." autocomplete="off">
                 <button id="clearSearch" onclick="clearSearch()" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#999;">✕</button>
             </div>
-            <!-- 搜索结果下拉 -->
             <div id="searchPopover" class="search-results-popover"></div>
         </div>
 
@@ -54,52 +51,14 @@
 
         <main id="project-list" class="project-grid">
             <!-- PROJECT_LIST_START -->
-
-      <article class="project-card" data-name="挂钩了 ou" style="display:none;"> <!-- 默认隐藏，由JS分页显示 -->
-        <div class="card-icon"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg></div>
-        <h3 class="card-title">挂钩了</h3>
-        <div class="card-meta">公开演示项目</div>
-        <div class="card-actions">
-          <a href="/projects/ou/index.html" class="btn btn-primary btn-sm">立即访问</a>
-        </div>
-      </article>
-    
-      <article class="project-card" data-name="公开 ouw" style="display:none;"> <!-- 默认隐藏，由JS分页显示 -->
-        <div class="card-icon locked"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div>
-        <h3 class="card-title">公开</h3>
-        <div class="card-meta">需要密码访问</div>
-        <div class="card-actions">
-          <button onclick="handleAccess('ouw', true, '公开')" class="btn btn-primary btn-sm">访问</button>
-          <button onclick="showPlanetInfo()" class="btn btn-outline btn-sm">知识星球</button>
-          
-        </div>
-      </article>
-    
-      <article class="project-card" data-name="逛i gg" style="display:none;"> <!-- 默认隐藏，由JS分页显示 -->
-        <div class="card-icon"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg></div>
-        <h3 class="card-title">逛i</h3>
-        <div class="card-meta">公开演示项目</div>
-        <div class="card-actions">
-          <a href="/projects/gg/index.html" class="btn btn-primary btn-sm">立即访问</a>
-        </div>
-      </article>
-    
-      <article class="project-card" data-name="广告 0001" style="display:none;"> <!-- 默认隐藏，由JS分页显示 -->
-        <div class="card-icon"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg></div>
-        <h3 class="card-title">广告</h3>
-        <div class="card-meta">公开演示项目</div>
-        <div class="card-actions">
-          <a href="/projects/0001/index.html" class="btn btn-primary btn-sm">立即访问</a>
-        </div>
-      </article>
-    
-<!-- PROJECT_LIST_END -->
+            <!-- 列表由后端生成 -->
+            <!-- PROJECT_LIST_END -->
         </main>
         
         <div id="pagination" class="pagination"></div>
     </div>
 
-    <!-- 密码弹窗 -->
+    <!-- 增强版密码 Modal -->
     <div id="passwordModal" class="modal-overlay">
         <div class="modal-box">
             <div style="text-align: center;">
@@ -107,7 +66,7 @@
                 <h3 id="modalTitle" style="font-size: 1.25rem; margin-bottom: 0.5rem; color:#1e293b;">项目名称</h3>
                 <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; background: #f8fafc; padding: 10px; border-radius: 6px;">
                     访问此项目需要授权。<br>
-                    <span style="font-size: 0.8rem; color: #475569;">提示：请查看置顶帖或联系管理员</span>
+                    <span style="font-size: 0.8rem; color: #475569;">提示：请查看置顶帖或联系管理员获取</span>
                 </div>
             </div>
             
@@ -115,10 +74,12 @@
                 <input type="password" id="accessPassword" class="form-input" placeholder="输入访问密码..." onkeydown="if(event.key==='Enter') verifyPassword()">
                 <div style="margin-top: 10px; display: flex; justify-content: space-between; font-size: 0.85rem;">
                     <label style="cursor: pointer; display: flex; align-items: center; user-select: none;">
-                        <input type="checkbox" id="chkRemember" style="margin-right: 5px;"> 30天免密登录
+                        <input type="checkbox" id="chkRemember" style="margin-right: 5px;"> 
+                        <!-- 动态显示的文本 -->
+                        <span id="rememberText">免密登录</span>
                     </label>
                 </div>
-                <div id="pwdError" style="color: #ef4444; font-size: 0.85rem; margin-top: 5px; display: none;">密码错误，请重试</div>
+                <div id="pwdError" style="color: #ef4444; font-size: 0.85rem; margin-top: 5px; display: none;">密码错误</div>
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
@@ -127,49 +88,43 @@
             </div>
         </div>
     </div>
-
+    
     <!-- 知识星球 Modal -->
     <div id="planetModal" class="modal-overlay">
         <div class="modal-box" style="text-align: center;">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">🪐</div>
-            <h3>知识星球</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">获取源码与技术支持</p>
-            <button onclick="document.getElementById('planetModal').classList.remove('active')" class="btn btn-primary" style="width: 100%;">关闭</button>
+            <div style="font-size: 3rem;">🪐</div><h3>知识星球</h3><p>获取源码与技术支持</p><button onclick="document.getElementById('planetModal').classList.remove('active')" class="btn btn-primary">关闭</button>
         </div>
     </div>
 
     <script src="js/main.js"></script>
     <script>
-        // === 1. 初始化与分页 ===
         let allCards = [];
         let currentPage = 1;
-        let pageSize = 12;
+        let pageSize = 12; // 默认值
 
         window.onload = async function() {
-            // 获取分页配置
+            // 1. 优先获取全局分页设置
             try {
                 const res = await fetch('/api/settings');
                 const data = await res.json();
                 if(data.pageSize) pageSize = data.pageSize;
-            } catch(e) {}
+            } catch(e) { console.error('Failed to load settings'); }
 
             allCards = Array.from(document.querySelectorAll('.project-card'));
-
-            // === 核心修复：处理自动跳转逻辑 ===
+            
+            // 2. 检查URL跳转逻辑 (守门员)
             const params = new URLSearchParams(window.location.search);
             const target = params.get('target');
-            
             if (target) {
-                // 如果是加密项目跳转回来的，先检查 Cookie
-                // 如果已经有权限（比如刚才登录了，或者多标签页），直接清理 URL 不弹窗
                 if (getCookie(`access_${target}`) === 'ok') {
+                    // 已有权限，清除参数
                      window.history.replaceState({}, document.title, "/");
                 } else {
-                    // 确实没权限，才弹窗
+                    // 无权限，弹窗
                     const card = allCards.find(c => c.dataset.name.includes(target.toLowerCase()));
                     const title = card ? card.querySelector('.card-title').innerText : target;
+                    // 传递 null 触发 DOM 查找 days
                     handleAccess(target, true, title);
-                    // 弹窗后也清理 URL，避免刷新页面再次触发
                     window.history.replaceState({}, document.title, "/");
                 }
             }
@@ -183,7 +138,8 @@
             const end = start + pageSize;
             
             allCards.forEach(c => c.style.display = 'none');
-            // 如果正在搜索，不分页
+            
+            // 搜索中不分页
             if(document.getElementById('searchInput').value) return;
 
             const pageItems = allCards.slice(start, end);
@@ -206,7 +162,6 @@
             }
         }
 
-        // === 2. 搜索逻辑 (含 Popover) ===
         const searchInput = document.getElementById('searchInput');
         const popover = document.getElementById('searchPopover');
         const clearBtn = document.getElementById('clearSearch');
@@ -214,24 +169,18 @@
         searchInput.addEventListener('input', (e) => {
             const val = e.target.value.toLowerCase();
             clearBtn.style.display = val ? 'block' : 'none';
-            
             if (!val) {
                 popover.style.display = 'none';
                 renderPage(1);
                 return;
             }
-
             const matched = allCards.filter(c => c.dataset.name.includes(val));
-            
-            // 过滤主视图
             allCards.forEach(c => c.style.display = 'none');
             matched.forEach(c => c.style.display = 'flex');
             document.getElementById('pagination').innerHTML = ''; 
 
-            // 下拉提示
             popover.innerHTML = '';
             popover.style.display = 'block';
-            
             if (matched.length > 0) {
                 matched.slice(0, 5).forEach(c => {
                     const title = c.querySelector('.card-title').innerText;
@@ -241,15 +190,6 @@
                     div.onclick = () => c.querySelector('button, a').click();
                     popover.appendChild(div);
                 });
-                if (matched.length > 5) {
-                    const more = document.createElement('div');
-                    more.className = 'search-item';
-                    more.style.justifyContent = 'center';
-                    more.style.color = '#666';
-                    more.innerText = `查看所有 ${matched.length} 个结果`;
-                    more.onclick = () => popover.style.display = 'none';
-                    popover.appendChild(more);
-                }
             } else {
                 popover.innerHTML = '<div class="search-item" style="justify-content:center; color:#999;">无匹配项目</div>';
             }
@@ -262,45 +202,45 @@
             renderPage(1);
         }
 
-        // === 3. 访问控制与 Cookie ===
         function getCookie(name) {
             const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
             return v ? v[2] : null;
         }
 
         function handleAccess(folder, isLocked, titleOverride) {
-            // 1. 公开项目直接跳转
             if (!isLocked) {
                 window.location.href = `/projects/${folder}/index.html`;
                 return;
             }
-            
-            // 2. 核心修复：加密项目，如果 Cookie 存在，直接跳转，不弹窗
             if (getCookie(`access_${folder}`) === 'ok') {
                 window.location.href = `/projects/${folder}/index.html`;
                 return;
             }
 
-            // 3. 无权限，显示弹窗
             window.currentFolder = folder;
-            
             let title = titleOverride;
-            if(!title) {
-                const c = allCards.find(x => x.dataset.name.includes(folder.toLowerCase()));
-                title = c ? c.querySelector('.card-title').innerText : folder;
+            let days = 30; // 默认值
+
+            // 尝试从 DOM 获取数据
+            const card = document.querySelector(`.project-card[data-name*="${folder.toLowerCase()}"]`);
+            if (card) {
+                if(!title) title = card.querySelector('.card-title').innerText;
+                // 获取后端写入的记住天数
+                const d = card.getAttribute('data-days');
+                if(d) days = parseInt(d);
             }
 
-            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalTitle').innerText = title || folder;
+            // 联动更新文本
+            document.getElementById('rememberText').innerText = `${days}天免密登录`;
+            
             document.getElementById('accessPassword').value = '';
             document.getElementById('pwdError').style.display = 'none';
-            
-            document.querySelectorAll('.modal-overlay').forEach(el=>el.classList.remove('active'));
+            closeModal();
             document.getElementById('passwordModal').classList.add('active');
         }
 
-        function closeModal() {
-            document.querySelectorAll('.modal-overlay').forEach(el=>el.classList.remove('active'));
-        }
+        function closeModal() { document.querySelectorAll('.modal-overlay').forEach(el=>el.classList.remove('active')); }
         function showPlanetInfo() { document.getElementById('planetModal').classList.add('active'); }
 
         async function verifyPassword() {
