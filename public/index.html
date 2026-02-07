@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目展示</title>
+    <title>Project Hub</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* 增强的搜索 UI */
+        /* 搜索结果悬浮提示 */
         .search-wrapper { position: relative; max-width: 400px; width: 100%; }
         .search-results-popover {
             position: absolute; top: 100%; left: 0; width: 100%;
@@ -17,12 +17,13 @@
         .search-item { padding: 0.5rem 1rem; cursor: pointer; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
         .search-item:last-child { border-bottom: none; }
         .search-item:hover { background: #f8fafc; color: var(--primary); }
-        
+        .search-highlight { font-weight: bold; color: var(--primary); }
+
         /* 分页器 */
         .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 3rem; margin-bottom: 2rem; }
-        .page-btn { padding: 6px 14px; border: 1px solid var(--border); background: white; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+        .page-btn { padding: 6px 14px; border: 1px solid var(--border); background: white; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
         .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .page-btn:hover:not(.active) { background: #f8fafc; }
+        .page-btn:hover:not(.active) { background: #f8fafc; border-color: #cbd5e1; }
     </style>
 </head>
 <body>
@@ -53,24 +54,14 @@
 
         <main id="project-list" class="project-grid">
             <!-- PROJECT_LIST_START -->
-
-      <article class="project-card" data-name="逛 0001" style="display:none;"> <!-- 默认隐藏，由JS分页显示 -->
-        <div class="card-icon"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg></div>
-        <h3 class="card-title">逛</h3>
-        <div class="card-meta">公开演示项目</div>
-        <div class="card-actions">
-          <a href="/projects/0001/index.html" class="btn btn-primary btn-sm">立即访问</a>
-        </div>
-      </article>
-    
-<!-- PROJECT_LIST_END -->
+            <!-- 列表由后端生成 -->
+            <!-- PROJECT_LIST_END -->
         </main>
-
-        <!-- 分页 -->
+        
         <div id="pagination" class="pagination"></div>
     </div>
 
-    <!-- 增强版密码 Modal -->
+    <!-- 密码弹窗 -->
     <div id="passwordModal" class="modal-overlay">
         <div class="modal-box">
             <div style="text-align: center;">
@@ -78,9 +69,7 @@
                 <h3 id="modalTitle" style="font-size: 1.25rem; margin-bottom: 0.5rem; color:#1e293b;">项目名称</h3>
                 <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; background: #f8fafc; padding: 10px; border-radius: 6px;">
                     访问此项目需要授权。<br>
-                    <span style="font-size: 0.8rem; color: #475569;">
-                        提示：密码请查看知识星球置顶帖或联系管理员获取
-                    </span>
+                    <span style="font-size: 0.8rem; color: #475569;">提示：请查看置顶帖或联系管理员</span>
                 </div>
             </div>
             
@@ -100,22 +89,26 @@
             </div>
         </div>
     </div>
-    <!-- 知识星球 Modal (略，保持原有) -->
+
+    <!-- 知识星球 Modal -->
     <div id="planetModal" class="modal-overlay">
         <div class="modal-box" style="text-align: center;">
-            <div style="font-size: 3rem;">🪐</div><h3>知识星球</h3><p>获取源码与支持</p><button onclick="document.getElementById('planetModal').classList.remove('active')" class="btn btn-primary">关闭</button>
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🪐</div>
+            <h3>知识星球</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">获取源码与技术支持</p>
+            <button onclick="document.getElementById('planetModal').classList.remove('active')" class="btn btn-primary" style="width: 100%;">关闭</button>
         </div>
     </div>
 
     <script src="js/main.js"></script>
     <script>
-        // === 全局状态 ===
+        // === 1. 初始化与分页 ===
         let allCards = [];
         let currentPage = 1;
-        let pageSize = 12; // 默认值
+        let pageSize = 12;
 
         window.onload = async function() {
-            // 1. 获取分页配置 (假设通过 settings API 或 upload.js 的 list 接口返回，这里尝试调用 api/settings 如果有，否则默认12)
+            // 获取分页配置
             try {
                 const res = await fetch('/api/settings');
                 const data = await res.json();
@@ -123,38 +116,40 @@
             } catch(e) {}
 
             allCards = Array.from(document.querySelectorAll('.project-card'));
-            
-            // 2. 检查自动跳转 (守门员脚本)
+
+            // === 核心修复：处理自动跳转逻辑 ===
             const params = new URLSearchParams(window.location.search);
             const target = params.get('target');
+            
             if (target) {
-                // 查找对应卡片获取 Title
-                const card = allCards.find(c => c.dataset.name.includes(target.toLowerCase()));
-                const title = card ? card.querySelector('.card-title').innerText : target;
-                // 自动打开弹窗
-                handleAccess(target, true, title);
-                // 清理 URL
-                window.history.replaceState({}, document.title, "/");
+                // 如果是加密项目跳转回来的，先检查 Cookie
+                // 如果已经有权限（比如刚才登录了，或者多标签页），直接清理 URL 不弹窗
+                if (getCookie(`access_${target}`) === 'ok') {
+                     window.history.replaceState({}, document.title, "/");
+                } else {
+                    // 确实没权限，才弹窗
+                    const card = allCards.find(c => c.dataset.name.includes(target.toLowerCase()));
+                    const title = card ? card.querySelector('.card-title').innerText : target;
+                    handleAccess(target, true, title);
+                    // 弹窗后也清理 URL，避免刷新页面再次触发
+                    window.history.replaceState({}, document.title, "/");
+                }
             }
 
             renderPage(1);
         };
 
-        // === 分页逻辑 ===
         function renderPage(page) {
             currentPage = page;
             const start = (page - 1) * pageSize;
             const end = start + pageSize;
             
-            // 隐藏所有，显示当前页
             allCards.forEach(c => c.style.display = 'none');
-            
-            // 如果处于搜索状态，不分页
-            if (document.getElementById('searchInput').value) return; 
+            // 如果正在搜索，不分页
+            if(document.getElementById('searchInput').value) return;
 
             const pageItems = allCards.slice(start, end);
             pageItems.forEach(c => c.style.display = 'flex');
-
             renderPagination();
         }
 
@@ -162,7 +157,6 @@
             const totalPages = Math.ceil(allCards.length / pageSize);
             const container = document.getElementById('pagination');
             container.innerHTML = '';
-            
             if (totalPages <= 1) return;
 
             for (let i = 1; i <= totalPages; i++) {
@@ -174,7 +168,7 @@
             }
         }
 
-        // === 搜索逻辑 (Popover + 全局过滤) ===
+        // === 2. 搜索逻辑 (含 Popover) ===
         const searchInput = document.getElementById('searchInput');
         const popover = document.getElementById('searchPopover');
         const clearBtn = document.getElementById('clearSearch');
@@ -185,19 +179,18 @@
             
             if (!val) {
                 popover.style.display = 'none';
-                renderPage(1); // 恢复分页
+                renderPage(1);
                 return;
             }
 
-            // 过滤
             const matched = allCards.filter(c => c.dataset.name.includes(val));
             
-            // 1. 主视图：显示所有匹配项 (取消分页)
+            // 过滤主视图
             allCards.forEach(c => c.style.display = 'none');
             matched.forEach(c => c.style.display = 'flex');
             document.getElementById('pagination').innerHTML = ''; 
 
-            // 2. 下拉提示：显示前5个
+            // 下拉提示
             popover.innerHTML = '';
             popover.style.display = 'block';
             
@@ -207,7 +200,7 @@
                     const div = document.createElement('div');
                     div.className = 'search-item';
                     div.innerHTML = `<span>${title}</span> <span style="font-size:0.8rem;color:#999;">GO &rarr;</span>`;
-                    div.onclick = () => c.querySelector('button, a').click(); // 触发访问
+                    div.onclick = () => c.querySelector('button, a').click();
                     popover.appendChild(div);
                 });
                 if (matched.length > 5) {
@@ -215,7 +208,7 @@
                     more.className = 'search-item';
                     more.style.justifyContent = 'center';
                     more.style.color = '#666';
-                    more.innerText = `查看剩余 ${matched.length - 5} 个结果...`;
+                    more.innerText = `查看所有 ${matched.length} 个结果`;
                     more.onclick = () => popover.style.display = 'none';
                     popover.appendChild(more);
                 }
@@ -231,28 +224,28 @@
             renderPage(1);
         }
 
-        // === 访问控制 ===
+        // === 3. 访问控制与 Cookie ===
         function getCookie(name) {
             const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
             return v ? v[2] : null;
         }
 
-        // 兼容旧调用，支持 title 参数
         function handleAccess(folder, isLocked, titleOverride) {
+            // 1. 公开项目直接跳转
             if (!isLocked) {
                 window.location.href = `/projects/${folder}/index.html`;
                 return;
             }
             
-            // 检查 Cookie
+            // 2. 核心修复：加密项目，如果 Cookie 存在，直接跳转，不弹窗
             if (getCookie(`access_${folder}`) === 'ok') {
                 window.location.href = `/projects/${folder}/index.html`;
                 return;
             }
 
+            // 3. 无权限，显示弹窗
             window.currentFolder = folder;
             
-            // 获取标题
             let title = titleOverride;
             if(!title) {
                 const c = allCards.find(x => x.dataset.name.includes(folder.toLowerCase()));
@@ -263,8 +256,7 @@
             document.getElementById('accessPassword').value = '';
             document.getElementById('pwdError').style.display = 'none';
             
-            // 弹出 Modal
-            document.querySelectorAll('.modal-overlay').forEach(el=>el.classList.remove('active')); // 关闭其他
+            document.querySelectorAll('.modal-overlay').forEach(el=>el.classList.remove('active'));
             document.getElementById('passwordModal').classList.add('active');
         }
 
@@ -285,12 +277,11 @@
 
             const data = await res.json();
             if (data.success) {
-                // 验证成功提示
                 const box = document.querySelector('#passwordModal .modal-box');
-                box.innerHTML = '<div style="text-align:center; padding:2rem;"><h3 style="color:#22c55e;">验证通过</h3><p>正在跳转...</p></div>';
+                box.innerHTML = '<div style="text-align:center; padding:2rem;"><h3 style="color:#22c55e;">验证通过</h3><p>正在进入...</p></div>';
                 setTimeout(() => {
                     window.location.href = `/projects/${window.currentFolder}/index.html`;
-                }, 1500);
+                }, 1000);
             } else {
                 document.getElementById('pwdError').style.display = 'block';
             }
