@@ -26,7 +26,7 @@ async function githubRequest(env, method, path, body = null) {
   return fetch(url, options);
 }
 
-// 防 F12 脚本 (混淆压缩版)
+// 防 F12 脚本
 const SECURITY_SCRIPT = `
 <script>
 document.onkeydown=function(e){if(123==e.keyCode||(e.ctrlKey&&e.shiftKey&&(73==e.keyCode||74==e.keyCode))||(e.ctrlKey&&85==e.keyCode))return!1};
@@ -35,8 +35,8 @@ document.oncontextmenu=function(e){return!1};
 </script>
 `;
 
-// 定义常用库映射 (实际库地址)
-const JS_LIB_MAP = {
+// 预设库 CDN
+const PRESET_LIBS = {
     'jquery': '<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>',
     'vue': '<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>',
     'react': '<script src="https://cdn.jsdelivr.net/npm/react@17/umd/react.production.min.js"></script><script src="https://cdn.jsdelivr.net/npm/react-dom@17/umd/react-dom.production.min.js"></script>',
@@ -44,35 +44,38 @@ const JS_LIB_MAP = {
     'lodash': '<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>'
 };
 
-// --- 主逻辑 ---
 export async function onRequestPost(context) {
   const { request, env } = context;
-  
-  // 判断是 JSON 请求 (代码保存) 还是 FormData 请求 (文件上传)
   const contentType = request.headers.get('content-type') || '';
   
-  let folderName, isPublic, isEncrypted, passwords, articleLink, injectedLibs;
+  let folderName, isPublic, isEncrypted, passwords, articleLink, injectedLibs, rememberDays;
   let filesToUpload = [];
   let isCodeEditMode = false;
 
+  // 1. 解析请求数据
   if (contentType.includes('application/json')) {
-    // 模式 A: 代码编辑器保存
+    // === 模式 A: 代码编辑器保存 ===
     isCodeEditMode = true;
     const body = await request.json();
     folderName = body.folderName;
-    filesToUpload = [{ name: body.fileName, content: body.content, isText: true }]; // 构造虚拟文件对象
+    
+    // 构造虚拟文件对象 (Text mode)
+    filesToUpload = [{ name: body.fileName, content: body.content, isText: true }]; 
+    
     // 获取现有配置以保持不变
     const currentProject = await env.DB.prepare('SELECT * FROM projects WHERE folder_name = ?').bind(folderName).first();
     if(!currentProject) return new Response('Project not found', {status: 404});
     
+    // 保持原有配置
     isPublic = currentProject.is_public;
     isEncrypted = currentProject.is_encrypted;
     passwords = currentProject.passwords;
     articleLink = currentProject.article_link;
-    injectedLibs = currentProject.injected_libs; // 保持原样
+    injectedLibs = currentProject.injected_libs;
+    rememberDays = currentProject.remember_days;
 
   } else {
-    // 模式 B: 表单上传/配置更新
+    // === 模式 B: 表单上传/配置更新 ===
     const formData = await request.formData();
     folderName = formData.get('folderName');
     isPublic = formData.get('isPublic') === 'true' ? 1 : 0;
@@ -80,9 +83,8 @@ export async function onRequestPost(context) {
     const pwRaw = formData.get('passwords') || '';
     passwords = JSON.stringify(pwRaw.split(',').map(p => p.trim()).filter(p => p));
     articleLink = formData.get('articleLink') || '';
-    
-    // 获取注入的库 (JSON 字符串)
-    injectedLibs = formData.get('injectedLibs') || '[]';
+    injectedLibs = formData.get('injectedLibs') || '{}'; // JSON Object String
+    rememberDays = parseInt(formData.get('rememberDays') || '30');
 
     const rawFiles = formData.getAll('files');
     for (const f of rawFiles) {
@@ -90,36 +92,36 @@ export async function onRequestPost(context) {
     }
   }
 
-  // 1. 处理文件上传与注入
+  // 2. 执行文件上传 (修复：只要 filesToUpload 有内容就执行)
   if (filesToUpload.length > 0) {
       for (const fileObj of filesToUpload) {
             let contentBase64;
             
-            if (fileObj.isText) {
-                // 来自编辑器：直接是字符串，需要重新注入
-                let textContent = fileObj.content;
-                // 如果是 HTML，重新注入脚本
-                if (fileObj.name.endsWith('.html')) {
-                   textContent = injectScripts(textContent, injectedLibs);
-                }
-                contentBase64 = utf8ToBase64(textContent);
-            } else {
-                // 来自文件上传：二进制
-                let arrayBuffer = await fileObj.rawFile.arrayBuffer();
-                
-                // 如果是 HTML 文件，解码 -> 注入 -> 编码
-                if (fileObj.name.endsWith('.html')) {
-                    let textContent = new TextDecoder().decode(arrayBuffer);
-                    textContent = injectScripts(textContent, injectedLibs);
-                    contentBase64 = utf8ToBase64(textContent);
+            // 如果是 HTML 文件，注入脚本
+            if (fileObj.name.endsWith('.html')) {
+                let textContent = '';
+                if (fileObj.isText) {
+                    textContent = fileObj.content;
                 } else {
-                    contentBase64 = arrayBufferToBase64(arrayBuffer);
+                    textContent = new TextDecoder().decode(await fileObj.rawFile.arrayBuffer());
                 }
+                
+                // 注入逻辑
+                textContent = injectScripts(textContent, injectedLibs);
+                contentBase64 = utf8ToBase64(textContent);
+            } 
+            else if (fileObj.isText) {
+                // 非HTML的文本文件 (如 css/js 编辑)
+                contentBase64 = utf8ToBase64(fileObj.content);
+            }
+            else {
+                // 二进制文件上传
+                contentBase64 = arrayBufferToBase64(await fileObj.rawFile.arrayBuffer());
             }
 
             const filePath = `public/projects/${folderName}/${fileObj.name}`;
             
-            // 获取 SHA
+            // 获取 SHA 用于覆盖
             let sha = null;
             const checkRes = await githubRequest(env, 'GET', filePath);
             if (checkRes.ok) {
@@ -128,32 +130,36 @@ export async function onRequestPost(context) {
             }
 
             const payload = {
-                message: `Update ${folderName}/${fileObj.name}`,
+                message: isCodeEditMode ? `Edit ${folderName}/${fileObj.name}` : `Upload ${folderName}/${fileObj.name}`,
                 content: contentBase64,
                 branch: env.GITHUB_BRANCH || 'main'
             };
             if (sha) payload.sha = sha;
 
             const uploadRes = await githubRequest(env, 'PUT', filePath, payload);
-            if (!uploadRes.ok) return new Response(`GitHub Upload Error: ${fileObj.name}`, { status: 500 });
+            if (!uploadRes.ok) {
+                const errText = await uploadRes.text();
+                return new Response(`GitHub Upload Error: ${errText}`, { status: 500 });
+            }
       }
   }
 
-  // 2. 更新数据库 (仅在非代码编辑模式下，或者你需要更新最后编辑时间)
+  // 3. 更新数据库 (仅在非代码编辑模式下更新元数据)
   if (!isCodeEditMode) {
       await env.DB.prepare(`
-        INSERT INTO projects (folder_name, is_public, is_encrypted, passwords, article_link, injected_libs, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        INSERT INTO projects (folder_name, is_public, is_encrypted, passwords, article_link, injected_libs, remember_days, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
         ON CONFLICT(folder_name) DO UPDATE SET
         is_public = excluded.is_public,
         is_encrypted = excluded.is_encrypted,
         passwords = excluded.passwords,
         article_link = excluded.article_link,
         injected_libs = excluded.injected_libs,
+        remember_days = excluded.remember_days,
         updated_at = excluded.updated_at
-      `).bind(folderName, isPublic, isEncrypted, passwords, articleLink, injectedLibs).run();
+      `).bind(folderName, isPublic, isEncrypted, passwords, articleLink, injectedLibs, rememberDays).run();
 
-      // 更新首页索引 (仅当配置变更时才需要，代码编辑不需要更新首页)
+      // 更新首页
       try { await updateIndexHtml(env); } 
       catch (e) { return new Response(e.message, {status: 500}); }
   }
@@ -161,23 +167,39 @@ export async function onRequestPost(context) {
   return new Response(JSON.stringify({ success: true }));
 }
 
-// 辅助：注入脚本逻辑
 function injectScripts(htmlContent, libsJson) {
-    let libs = [];
-    try { libs = JSON.parse(libsJson); } catch(e) {}
+    let config = { presets: [], customFiles: [], customCode: '' };
+    try { 
+        // 兼容旧格式(数组)和新格式(对象)
+        const parsed = JSON.parse(libsJson); 
+        if(Array.isArray(parsed)) config.presets = parsed;
+        else config = { ...config, ...parsed };
+    } catch(e) {}
 
-    // 生成注入的 HTML 字符串
-    let injection = '';
+    let injection = '\n<!-- Injected Libs -->\n';
     
-    // 1. 注入库
-    libs.forEach(lib => {
-        if(JS_LIB_MAP[lib]) injection += JS_LIB_MAP[lib] + '\n';
-    });
+    // 1. 预设库
+    if(config.presets) {
+        config.presets.forEach(lib => {
+            if(PRESET_LIBS[lib]) injection += PRESET_LIBS[lib] + '\n';
+        });
+    }
 
-    // 2. 注入防 F12
+    // 2. 自定义项目文件引用 (相对路径)
+    if(config.customFiles) {
+        config.customFiles.forEach(file => {
+            injection += `<script src="./${file}"></script>\n`;
+        });
+    }
+
+    // 3. 自定义代码
+    if(config.customCode) {
+        injection += `<script>\n${config.customCode}\n</script>\n`;
+    }
+
+    // 4. 防 F12
     injection += SECURITY_SCRIPT;
 
-    // 简单替换：插在 </body> 之前，如果没有 body 插在最后
     if (htmlContent.includes('</body>')) {
         return htmlContent.replace('</body>', injection + '</body>');
     } else {
@@ -185,11 +207,11 @@ function injectScripts(htmlContent, libsJson) {
     }
 }
 
-// --- updateIndexHtml 函数 (保持之前的逻辑，略微精简) ---
-// 请务必包含之前的 updateIndexHtml 函数，这里省略以节省篇幅，逻辑不变
+// ... updateIndexHtml (同前，必须保留) ...
 async function updateIndexHtml(env) {
-    // ... (复制之前的 updateIndexHtml 代码) ...
-    // 关键点：确保这部分代码存在，否则 D1 更新后首页不会变
+    // 这里的逻辑与之前完全一致，负责更新 index.html 的卡片列表
+    // 请将之前的 updateIndexHtml 完整代码粘贴于此
+    // 略微修改: 添加 data-name 用于搜索
      const { results } = await env.DB.prepare('SELECT * FROM projects WHERE is_public = 1 ORDER BY updated_at DESC').all();
 
   let cardsHtml = '';
@@ -202,7 +224,6 @@ async function updateIndexHtml(env) {
 
     let actions = '';
     if (isLocked) {
-        // 修改：传入更多参数给 handleAccess
         actions = `
           <button onclick="handleAccess('${p.folder_name}', true)" class="btn btn-primary btn-sm">访问</button>
           <button onclick="showPlanetInfo()" class="btn btn-outline btn-sm">知识星球</button>
@@ -214,7 +235,7 @@ async function updateIndexHtml(env) {
         `;
     }
 
-    // 增加 data-name 属性用于搜索
+    // 增加 data-name
     cardsHtml += `
       <article class="project-card" data-name="${p.folder_name.toLowerCase()}">
         <div class="${iconClass}">${iconSvg}</div>
@@ -229,22 +250,18 @@ async function updateIndexHtml(env) {
 
   const indexPath = 'public/index.html';
   const res = await githubRequest(env, 'GET', indexPath);
-  if (!res.ok) throw new Error('Cannot fetch index.html from GitHub');
-  
+  if (!res.ok) throw new Error('Cannot fetch index.html');
   const data = await res.json();
   const oldContent = new TextDecoder().decode(Uint8Array.from(atob(data.content.replace(/\n/g, '')), c => c.charCodeAt(0)));
-
   const startMarker = '<!-- PROJECT_LIST_START -->';
   const endMarker = '<!-- PROJECT_LIST_END -->';
   const regex = new RegExp(`${startMarker}[\\s\\S]*?${endMarker}`);
   const newContent = oldContent.replace(regex, `${startMarker}\n${cardsHtml}\n${endMarker}`);
-
   const payload = {
     message: 'Update project list via Admin',
     content: utf8ToBase64(newContent),
     sha: data.sha,
     branch: env.GITHUB_BRANCH || 'main'
   };
-
   await githubRequest(env, 'PUT', indexPath, payload);
 }
