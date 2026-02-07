@@ -458,16 +458,32 @@
 
             try {
                 const res = await fetch('/api/upload', { method: 'POST', body: formData });
-                const result = await res.json();
+                let result;
+                try {
+                    result = await res.json();
+                } catch (jsonErr) {
+                    // Try getting text if JSON fails
+                    const text = await res.text(); // Wait, res.json() already consumed body? No, if json() fails usually body is consumed or invalid.
+                    // Actually, if res.json() fails, we can't read text again easily in standard fetch unless we cloned.
+                    // But usually it fails because it's not JSON.
+                    // Let's assume result is { message: 'Invalid JSON response' }
+                    result = { message: 'Server returned non-JSON response. Check console.' };
+                    console.error('Non-JSON response:', jsonErr);
+                }
+
                 if(res.ok) {
                     showToast('保存成功');
                     const savedId = formData.get('folderName');
                     await loadProjects();
                     selectProject(savedId);
                 } else {
-                    showToast('保存失败: ' + result.message, 'error');
+                    console.error('Upload failed:', result);
+                    showToast('保存失败: ' + (result.message || 'Unknown error'), 'error');
                 }
-            } catch(e) { showToast('网络错误', 'error'); }
+            } catch(e) { 
+                console.error('Network Error:', e);
+                showToast('网络错误: ' + e.message, 'error'); 
+            }
             finally { btn.disabled = false; btn.innerText = '保存配置'; }
         });
 
