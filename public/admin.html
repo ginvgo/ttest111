@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目管理后台</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Admin Specific Styles */
+        .extra-btn-item { background: #f8fafc; padding: 1rem; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 0.5rem; }
+        .extra-btn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; cursor: pointer; }
+        .extra-btn-body { display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border); }
+        .extra-btn-item.active .extra-btn-body { display: block; }
+        
+        .code-editor-container { position: relative; height: 500px; border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; }
+        .code-toolbar { padding: 0.5rem; background: #f1f5f9; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .code-area-wrapper { flex: 1; position: relative; overflow: hidden; }
+        .code-textarea { width: 100%; height: 100%; border: none; padding: 1rem; font-family: 'Consolas', 'Monaco', monospace; font-size: 14px; line-height: 1.5; resize: none; outline: none; }
+        
+        .settings-section { margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
+        .lib-row { display: flex; align-items: center; gap: 1rem; padding: 0.5rem 0; }
+        .lib-url { flex: 1; color: var(--text-muted); font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 登录层 -->
+    <div id="loginLayer" class="login-layer">
+        <div class="login-card">
+            <h2 style="text-align: center; margin-bottom: 1.5rem; color: var(--primary);">管理后台登录</h2>
+            <div class="form-group">
+                <label>管理密码</label>
+                <div class="password-wrapper">
+                    <input type="password" id="adminPassword" class="form-input" placeholder="请输入管理员密码">
+                    <i class="fa-solid fa-eye password-toggle" onclick="togglePassword('adminPassword')"></i>
+                </div>
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="doLogin()">登 录</button>
+        </div>
+    </div>
+
+    <!-- 2. 主界面 -->
+    <div id="app" class="admin-layout hidden">
+        <!-- 左侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand"><i class="fa-solid fa-layer-group"></i> 项目管理</div>
+                <button class="btn btn-sm btn-outline" onclick="showSettings()"><i class="fa-solid fa-gear"></i></button>
+            </div>
+            <div style="padding: 1rem; border-bottom: 1px solid var(--border);">
+                <div class="search-box">
+                    <i class="fa-solid fa-search search-icon"></i>
+                    <input type="text" id="projectSearch" class="search-input" placeholder="搜索项目..." oninput="filterProjects()">
+                </div>
+            </div>
+            <div class="project-list" id="projectList">
+                <!-- 列表项 -->
+            </div>
+            <div style="padding: 1rem; border-top: 1px solid var(--border);">
+                <button class="btn btn-primary" style="width: 100%;" onclick="createNewProject()">
+                    <i class="fa-solid fa-plus"></i> 新建项目
+                </button>
+            </div>
+        </div>
+
+        <!-- 右侧内容区 -->
+        <div class="main-content">
+            <!-- 欢迎页/空状态 -->
+            <div id="emptyState" style="text-align: center; color: var(--text-muted); margin-top: 100px;">
+                <i class="fa-solid fa-code-branch" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.2;"></i>
+                <p>请选择一个项目进行编辑，或创建新项目。</p>
+            </div>
+
+            <!-- 项目编辑区 -->
+            <div id="editorPanel" class="editor-card hidden">
+                <div class="editor-header">
+                    <h2 id="editorTitle">新建项目</h2>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <a id="visitBtn" href="#" target="_blank" class="btn btn-outline hidden"><i class="fa-solid fa-external-link-alt"></i> 访问</a>
+                        <button class="btn btn-danger" onclick="deleteProject()"><i class="fa-solid fa-trash"></i> 删除</button>
+                        <button class="btn btn-primary" onclick="saveProject()"><i class="fa-solid fa-save"></i> 保存更改</button>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('basic')">基本信息</div>
+                    <div class="tab" onclick="switchTab('code')">代码与文件</div>
+                </div>
+
+                <!-- Tab 1: 基本信息 -->
+                <div id="tab-basic" class="tab-content">
+                    <div class="form-group">
+                        <label>文件夹名称 (ID)</label>
+                        <input type="text" id="f_folderName" class="form-input" placeholder="唯一标识，仅限英文数字">
+                    </div>
+                    <div class="form-group">
+                        <label>项目名称 (中文)</label>
+                        <input type="text" id="f_projectName" class="form-input" placeholder="展示在卡片上的名称">
+                    </div>
+                    <div class="form-group">
+                        <label>图标 (FontAwesome 类名 或 图片URL)</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="f_iconUrl" class="form-input" placeholder="例如: fa-solid fa-rocket" oninput="previewIcon()">
+                            <div id="iconPreview" class="card-icon" style="width: 42px; height: 42px; margin: 0;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>访问权限</label>
+                            <div class="form-check">
+                                <input type="checkbox" id="f_isPublic" checked> <span>公开展示</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>安全设置</label>
+                            <div class="form-check">
+                                <input type="checkbox" id="f_isEncrypted" onchange="toggleSecurityOptions()"> <span>启用密码保护</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="securityOptions" class="hidden" style="background: #fff1f2; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem;">
+                        <div class="form-group">
+                            <label>访问密码 (多个密码用逗号分隔)</label>
+                            <div class="password-wrapper">
+                                <input type="text" id="f_passwords" class="form-input" placeholder="例如: 123456, admin888">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>免登有效期 (天)</label>
+                            <input type="number" id="f_rememberDays" class="form-input" value="30">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>额外功能按钮</label>
+                        <div id="extraButtonsList"></div>
+                        <button class="btn btn-sm btn-outline" style="margin-top: 0.5rem;" onclick="addExtraButton()">
+                            <i class="fa-solid fa-plus"></i> 添加按钮
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>上传文件 (ZIP 或 单个文件)</label>
+                        <input type="file" id="f_files" class="form-input" multiple>
+                    </div>
+                </div>
+
+                <!-- Tab 2: 代码与文件 -->
+                <div id="tab-code" class="tab-content hidden">
+                    <div class="form-group">
+                        <label>JS 库引用 (勾选注入到 HTML)</label>
+                        <div class="lib-grid" id="libSelector">
+                            <!-- 动态加载 -->
+                        </div>
+                    </div>
+
+                    <div class="code-editor-container">
+                        <div class="code-toolbar">
+                            <span style="font-weight: 600; font-size: 0.9rem;">index.html</span>
+                            <button class="btn btn-sm btn-primary" onclick="loadCodeContent()">刷新/加载</button>
+                        </div>
+                        <div class="code-area-wrapper">
+                            <textarea id="codeEditor" class="code-textarea" spellcheck="false"></textarea>
+                        </div>
+                    </div>
+                    <div style="margin-top: 0.5rem; text-align: right;">
+                        <button class="btn btn-primary" onclick="saveCodeOnly()">仅保存代码</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 全局设置面板 -->
+            <div id="settingsPanel" class="editor-card hidden">
+                <div class="editor-header">
+                    <h2>全局设置</h2>
+                    <button class="btn btn-primary" onclick="saveGlobalSettings()"><i class="fa-solid fa-save"></i> 保存设置</button>
+                </div>
+
+                <div class="settings-section">
+                    <h3>基本配置</h3>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label>每页展示项目数</label>
+                        <input type="number" id="s_pageSize" class="form-input" value="12">
+                    </div>
+                </div>
+
+                <div class="settings-section" style="border-bottom: none;">
+                    <h3>JS 库管理</h3>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                            <input type="text" id="newLibName" class="form-input" placeholder="库名称 (如 Vue)" style="width: 150px;">
+                            <input type="text" id="newLibUrl" class="form-input" placeholder="CDN 地址 (https://...)" style="flex: 1;">
+                            <button class="btn btn-primary" onclick="addJsLib()">添加</button>
+                        </div>
+                        <div id="jsLibList">
+                            <!-- 列表 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- 逻辑脚本 -->
+    <script>
+        // --- 状态管理 ---
+        let allProjects = [];
+        let currentProject = null;
+        let globalSettings = {};
+        let allLibs = [];
+        let presetLibs = ['jquery', 'vue', 'react', 'axios', 'lodash', 'marked'];
+
+        // --- 初始化 ---
+        window.onload = async () => {
+            // 检查登录
+            try {
+                const res = await fetch('/api/check_auth'); // 假设有这个或者直接尝试 fetch list
+                // 暂时通过 fetch list 来探测
+            } catch(e) {}
+            
+            // 简单判断: 如果 fetch list 401 则未登录
+            // 这里为了简化，直接展示登录框，用户输入密码后存 cookie
+            // 实际环境应该用 cookie 验证
+            if (document.cookie.includes('admin_session=')) {
+                showApp();
+            } else {
+                // 显示登录框
+            }
+        };
+
+        function togglePassword(id) {
+            const el = document.getElementById(id);
+            el.type = el.type === 'password' ? 'text' : 'password';
+        }
+
+        async function doLogin() {
+            const pwd = document.getElementById('adminPassword').value;
+            if (!pwd) return showToast('请输入密码', 'error');
+
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ password: pwd })
+            });
+
+            if (res.ok) {
+                showToast('登录成功');
+                setTimeout(() => {
+                    document.getElementById('loginLayer').classList.add('hidden');
+                    showApp();
+                }, 500);
+            } else {
+                showToast('密码错误', 'error');
+            }
+        }
+
+        async function showApp() {
+            document.getElementById('app').classList.remove('hidden');
+            document.getElementById('loginLayer').classList.add('hidden');
+            await Promise.all([loadProjects(), loadSettings()]);
+        }
+
+        // --- 数据加载 ---
+        async function loadProjects() {
+            try {
+                // Admin 模式下 list 返回所有
+                const res = await fetch('/api/list?pageSize=1000');
+                const data = await res.json();
+                allProjects = data.items;
+                renderProjectList(allProjects);
+            } catch (e) {
+                showToast('加载项目失败', 'error');
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                globalSettings = data.settings;
+                // Merge DB libs with presets
+                const dbLibs = data.libraries || [];
+                // 构造完整库列表
+                allLibs = [
+                    ...presetLibs.map(name => ({name, url: 'Preset', id: null})), 
+                    ...dbLibs
+                ];
+                
+                document.getElementById('s_pageSize').value = globalSettings.page_size || 12;
+                renderJsLibManager(dbLibs);
+                renderLibSelector();
+            } catch(e) {}
+        }
+
+        // --- 渲染逻辑 ---
+        function renderProjectList(projects) {
+            const container = document.getElementById('projectList');
+            container.innerHTML = '';
+            projects.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.onclick = () => selectProject(p.folder_name);
+                div.innerHTML = `
+                    <div class="item-title">
+                        ${p.project_name} 
+                        <span class="status-dot ${p.is_public ? 'dot-green' : 'dot-gray'}"></span>
+                    </div>
+                    <div class="item-meta">ID: ${p.folder_name}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function filterProjects() {
+            const term = document.getElementById('projectSearch').value.toLowerCase();
+            const filtered = allProjects.filter(p => 
+                p.project_name.toLowerCase().includes(term) || 
+                p.folder_name.toLowerCase().includes(term)
+            );
+            renderProjectList(filtered);
+        }
+
+        // --- 项目操作 ---
+        function createNewProject() {
+            currentProject = null;
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('settingsPanel').classList.add('hidden');
+            document.getElementById('editorPanel').classList.remove('hidden');
+            
+            // Reset Form
+            document.getElementById('editorTitle').innerText = '新建项目';
+            document.getElementById('f_folderName').value = '';
+            document.getElementById('f_folderName').readOnly = false;
+            document.getElementById('f_projectName').value = '';
+            document.getElementById('f_iconUrl').value = '';
+            document.getElementById('f_isPublic').checked = true;
+            document.getElementById('f_isEncrypted').checked = false;
+            document.getElementById('f_passwords').value = '';
+            document.getElementById('f_rememberDays').value = 30;
+            document.getElementById('extraButtonsList').innerHTML = '';
+            document.getElementById('codeEditor').value = '';
+            document.getElementById('visitBtn').classList.add('hidden');
+            
+            toggleSecurityOptions();
+            previewIcon();
+            
+            // Uncheck all libs
+            document.querySelectorAll('.lib-check').forEach(c => c.checked = false);
+        }
+
+        async function selectProject(folderName) {
+            currentProject = allProjects.find(p => p.folder_name === folderName);
+            if (!currentProject) return;
+
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('settingsPanel').classList.add('hidden');
+            document.getElementById('editorPanel').classList.remove('hidden');
+
+            document.getElementById('editorTitle').innerText = '编辑: ' + currentProject.project_name;
+            document.getElementById('f_folderName').value = currentProject.folder_name;
+            document.getElementById('f_folderName').readOnly = true;
+            document.getElementById('f_projectName').value = currentProject.project_name;
+            document.getElementById('f_iconUrl').value = currentProject.icon_url || '';
+            document.getElementById('f_isPublic').checked = currentProject.is_public;
+            document.getElementById('f_isEncrypted').checked = currentProject.is_encrypted;
+            // 密码字段 API 为了安全可能不返回，这里假设 Admin API 会返回，或者需要留空不修改
+            // 实际 list API 没有返回 passwords。这里如果需要编辑，可能需要 fetch detail。
+            // 暂时假设不修改密码则留空。
+            document.getElementById('f_passwords').value = ''; 
+            document.getElementById('f_rememberDays').value = currentProject.remember_days || 30;
+            
+            // 渲染 Extra Buttons
+            document.getElementById('extraButtonsList').innerHTML = '';
+            try {
+                const btns = JSON.parse(currentProject.extra_buttons || '[]');
+                btns.forEach(b => addExtraButton(b));
+            } catch(e) {}
+
+            toggleSecurityOptions();
+            previewIcon();
+            
+            // Visit Link
+            const link = document.getElementById('visitBtn');
+            link.href = `/projects/${currentProject.folder_name}/index.html`;
+            link.classList.remove('hidden');
+
+            // Reset Code Editor
+            document.getElementById('codeEditor').value = ''; // Clean slate until loaded
+
+            // Restore Libs
+            document.querySelectorAll('.lib-check').forEach(c => c.checked = false);
+            try {
+                const conf = JSON.parse(currentProject.injected_libs || '{}');
+                const presets = conf.presets || [];
+                presets.forEach(name => {
+                    const cb = document.querySelector(`.lib-check[value="${name}"]`);
+                    if(cb) cb.checked = true;
+                });
+            } catch(e) {}
+        }
+
+        function toggleSecurityOptions() {
+            const isEnc = document.getElementById('f_isEncrypted').checked;
+            const opt = document.getElementById('securityOptions');
+            if (isEnc) opt.classList.remove('hidden');
+            else opt.classList.add('hidden');
+        }
+
+        function previewIcon() {
+            const val = document.getElementById('f_iconUrl').value;
+            const box = document.getElementById('iconPreview');
+            box.innerHTML = '';
+            if (val.startsWith('http')) {
+                box.innerHTML = `<img src="${val}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">`;
+            } else if (val.startsWith('fa-')) {
+                box.innerHTML = `<i class="${val}" style="font-size: 1.5rem;"></i>`;
+            }
+        }
+
+        // --- 额外按钮逻辑 ---
+        function addExtraButton(data = null) {
+            const list = document.getElementById('extraButtonsList');
+            const idx = list.children.length;
+            const div = document.createElement('div');
+            div.className = 'extra-btn-item';
+            div.innerHTML = `
+                <div class="extra-btn-header" onclick="this.parentElement.classList.toggle('active')">
+                    <span class="btn-name">${data ? data.name : '新按钮'}</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+                <div class="extra-btn-body">
+                    <div class="form-group">
+                        <label>按钮名称</label>
+                        <input type="text" class="form-input b-name" value="${data ? data.name : ''}" oninput="this.closest('.extra-btn-item').querySelector('.btn-name').innerText = this.value">
+                    </div>
+                    <div class="form-group">
+                        <label>类型</label>
+                        <select class="form-input b-type">
+                            <option value="link" ${data && data.type === 'link' ? 'selected' : ''}>跳转链接</option>
+                            <option value="text" ${data && data.type === 'text' ? 'selected' : ''}>Markdown 弹窗</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>内容 (链接地址 或 Markdown文本)</label>
+                        <textarea class="form-input b-content" rows="4">${data ? data.content : ''}</textarea>
+                    </div>
+                    <div style="text-align: right;">
+                        <button class="btn btn-sm btn-danger" onclick="this.closest('.extra-btn-item').remove()">删除按钮</button>
+                    </div>
+                </div>
+            `;
+            list.appendChild(div);
+        }
+
+        function getExtraButtonsData() {
+            const items = document.querySelectorAll('.extra-btn-item');
+            const data = [];
+            items.forEach(item => {
+                data.push({
+                    name: item.querySelector('.b-name').value,
+                    type: item.querySelector('.b-type').value,
+                    content: item.querySelector('.b-content').value
+                });
+            });
+            return JSON.stringify(data);
+        }
+
+        // --- 保存逻辑 ---
+        async function saveProject() {
+            const formData = new FormData();
+            formData.append('folderName', document.getElementById('f_folderName').value);
+            formData.append('projectName', document.getElementById('f_projectName').value);
+            formData.append('isPublic', document.getElementById('f_isPublic').checked);
+            formData.append('isEncrypted', document.getElementById('f_isEncrypted').checked);
+            
+            const pass = document.getElementById('f_passwords').value;
+            if (pass) formData.append('passwords', pass);
+            
+            formData.append('rememberDays', document.getElementById('f_rememberDays').value);
+            formData.append('iconUrl', document.getElementById('f_iconUrl').value);
+            formData.append('extraButtons', getExtraButtonsData());
+            
+            // Files
+            const fileInput = document.getElementById('f_files');
+            for (let i = 0; i < fileInput.files.length; i++) {
+                formData.append('files', fileInput.files[i]);
+            }
+
+            try {
+                showToast('正在保存...', 'success');
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (res.ok) {
+                    showToast('保存成功');
+                    loadProjects();
+                } else {
+                    const txt = await res.text();
+                    showToast('保存失败: ' + txt, 'error');
+                }
+            } catch (e) {
+                showToast('网络错误', 'error');
+            }
+        }
+
+        async function deleteProject() {
+            if (!currentProject) return;
+            if (!confirm('确定要删除此项目吗？操作不可恢复！')) return;
+            
+            try {
+                const res = await fetch('/api/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ folderName: currentProject.folder_name })
+                });
+                if (res.ok) {
+                    showToast('删除成功');
+                    currentProject = null;
+                    document.getElementById('editorPanel').classList.add('hidden');
+                    document.getElementById('emptyState').classList.remove('hidden');
+                    loadProjects();
+                } else {
+                    showToast('删除失败', 'error');
+                }
+            } catch(e) {}
+        }
+
+        // --- 代码编辑逻辑 ---
+        async function loadCodeContent() {
+            if (!currentProject) return;
+            // 尝试获取 index.html
+            try {
+                const path = `public/projects/${currentProject.folder_name}/index.html`;
+                const res = await fetch(`/api/get_file?path=${path}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('codeEditor').value = data.content;
+                } else {
+                    showToast('未找到 index.html', 'error');
+                }
+            } catch(e) {
+                showToast('获取文件失败', 'error');
+            }
+        }
+
+        async function saveCodeOnly() {
+            if (!currentProject) return;
+            
+            // 收集选中的 Libs
+            const selectedLibs = [];
+            document.querySelectorAll('.lib-check:checked').forEach(cb => {
+                selectedLibs.push(cb.value);
+            });
+
+            const payload = {
+                folderName: currentProject.folder_name,
+                fileName: 'index.html',
+                content: document.getElementById('codeEditor').value,
+                injectedLibs: JSON.stringify({ presets: selectedLibs })
+            };
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    showToast('代码保存成功');
+                } else {
+                    showToast('保存失败', 'error');
+                }
+            } catch(e) { showToast('错误', 'error'); }
+        }
+
+        // --- 全局设置逻辑 ---
+        function showSettings() {
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('editorPanel').classList.add('hidden');
+            document.getElementById('settingsPanel').classList.remove('hidden');
+        }
+
+        function renderJsLibManager(dbLibs) {
+            const list = document.getElementById('jsLibList');
+            list.innerHTML = '';
+            dbLibs.forEach(lib => {
+                const div = document.createElement('div');
+                div.className = 'lib-row';
+                div.innerHTML = `
+                    <span style="font-weight:600; width:100px;">${lib.name}</span>
+                    <span class="lib-url">${lib.url}</span>
+                    <button class="btn btn-text" onclick="deleteJsLib(${lib.id})"><i class="fa-solid fa-trash"></i></button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function renderLibSelector() {
+            const container = document.getElementById('libSelector');
+            container.innerHTML = '';
+            allLibs.forEach(lib => {
+                const div = document.createElement('label');
+                div.className = 'lib-item';
+                div.innerHTML = `
+                    <input type="checkbox" class="lib-check" value="${lib.name}">
+                    <span>${lib.name}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function saveGlobalSettings() {
+            const size = document.getElementById('s_pageSize').value;
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ type: 'setting', key: 'page_size', value: size })
+            });
+            showToast('设置已保存');
+        }
+
+        async function addJsLib() {
+            const name = document.getElementById('newLibName').value;
+            const url = document.getElementById('newLibUrl').value;
+            if(!name || !url) return showToast('请填写完整', 'error');
+
+            const res = await fetch('/api/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ type: 'lib_add', name, url })
+            });
+            if(res.ok) {
+                document.getElementById('newLibName').value = '';
+                document.getElementById('newLibUrl').value = '';
+                showToast('添加成功');
+                loadSettings();
+            }
+        }
+
+        async function deleteJsLib(id) {
+            if(!confirm('确定删除此库？')) return;
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ type: 'lib_del', id })
+            });
+            loadSettings();
+        }
+
+        // --- UI Utils ---
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            
+            // Find active tab el
+            const tabs = document.querySelectorAll('.tab');
+            if(tabName === 'basic') tabs[0].classList.add('active');
+            else tabs[1].classList.add('active');
+
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+        }
+
+        function showToast(msg, type = 'success') {
+            const div = document.createElement('div');
+            div.className = `toast ${type}`;
+            div.innerHTML = `
+                <i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}" style="margin-right:10px; font-size:1.2rem; color: ${type === 'success' ? '#22c55e' : '#ef4444'}"></i>
+                <span>${msg}</span>
+            `;
+            document.getElementById('toastContainer').appendChild(div);
+            setTimeout(() => div.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
