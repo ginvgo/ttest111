@@ -243,13 +243,14 @@
         }
 
         async function doLogin() {
+            const user = document.getElementById('adminUsername').value;
             const pwd = document.getElementById('adminPassword').value;
-            if (!pwd) return showToast('请输入密码', 'error');
+            if (!user || !pwd) return showToast('请输入用户名和密码', 'error');
 
             const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ password: pwd })
+                body: JSON.stringify({ username: user, password: pwd })
             });
 
             if (res.ok) {
