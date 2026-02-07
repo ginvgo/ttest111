@@ -5,348 +5,285 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>项目展示</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css/github-markdown.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        /* Index Specific Styles */
-        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 15px; }
-        .empty-result { text-align: center; padding: 3rem; color: var(--text-muted); }
+        /* 增强的搜索 UI */
+        .search-wrapper { position: relative; max-width: 400px; width: 100%; }
+        .search-results-popover {
+            position: absolute; top: 100%; left: 0; width: 100%;
+            background: white; border: 1px solid var(--border); border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 50;
+            display: none; padding: 0.5rem 0; margin-top: 5px; max-height: 300px; overflow-y: auto;
+        }
+        .search-item { padding: 0.5rem 1rem; cursor: pointer; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
+        .search-item:last-child { border-bottom: none; }
+        .search-item:hover { background: #f8fafc; color: var(--primary); }
         
-        /* Modal Enhanced */
-        .modal-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; background: #f8fafc; padding: 0.5rem; border-radius: 4px; }
-        
-        /* Pagination */
-        .pagination { display: flex; justify-content: center; gap: 0.5rem; margin-top: 2rem; padding-bottom: 2rem; }
-        .page-btn { padding: 0.5rem 1rem; border: 1px solid var(--border); background: white; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
-        .page-btn:hover { border-color: var(--primary); color: var(--primary); }
+        /* 分页器 */
+        .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 3rem; margin-bottom: 2rem; }
+        .page-btn { padding: 6px 14px; border: 1px solid var(--border); background: white; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
         .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .page-btn:hover:not(.active) { background: #f8fafc; }
     </style>
 </head>
 <body>
-
-    <!-- Navbar -->
     <nav class="navbar">
-        <a href="/" class="brand"><i class="fa-solid fa-rocket"></i> 项目展示中心</a>
+        <a href="/" class="brand">ProjectHub</a>
         
-        <div class="search-box">
-            <i class="fa-solid fa-search search-icon"></i>
-            <input type="text" id="searchInput" class="search-input" placeholder="搜索项目..." onkeydown="handleSearch(event)">
-            <i class="fa-solid fa-times-circle" id="clearSearch" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color:var(--text-muted); display:none;" onclick="clearSearch()"></i>
+        <!-- 搜索区域 -->
+        <div class="search-wrapper">
+            <div class="search-box">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" id="searchInput" class="search-input" placeholder="全局搜索项目..." autocomplete="off">
+                <button id="clearSearch" onclick="clearSearch()" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#999;">✕</button>
+            </div>
+            <!-- 搜索结果下拉 -->
+            <div id="searchPopover" class="search-results-popover"></div>
+        </div>
+
+        <div class="nav-links">
+            <a href="https://github.com/yourname" target="_blank">GitHub</a>
         </div>
     </nav>
 
-    <!-- Main Content -->
     <div class="container">
-        <!-- Search Stats -->
-        <div id="searchStats" class="hidden" style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">
-            找到 <span id="totalResults" style="font-weight:700; color:var(--text-main);">0</span> 个相关项目
-        </div>
+        <header style="text-align: center; margin: 4rem 0;">
+            <h1>Project Portfolio</h1>
+            <p style="color: var(--text-muted);">Innovation & Code</p>
+        </header>
 
-        <div id="projectGrid" class="project-grid">
-            <!-- Cards injected here -->
-        </div>
+        <main id="project-list" class="project-grid">
+            <!-- PROJECT_LIST_START -->
+            <!-- 列表由后端生成，初始全部 display:none -->
+            <!-- PROJECT_LIST_END -->
+        </main>
 
+        <!-- 分页 -->
         <div id="pagination" class="pagination"></div>
     </div>
 
-    <!-- Password Modal -->
-    <div id="authModal" class="modal-overlay">
+    <!-- 增强版密码 Modal -->
+    <div id="passwordModal" class="modal-overlay">
         <div class="modal-box">
-            <h3 class="modal-title" id="authTitle">访问受限</h3>
-            <div class="modal-subtitle">
-                <i class="fa-solid fa-info-circle"></i> 
-                此项目已加密。请联系管理员获取访问密码。
+            <div style="text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 0.5rem;">🔒</div>
+                <h3 id="modalTitle" style="font-size: 1.25rem; margin-bottom: 0.5rem; color:#1e293b;">项目名称</h3>
+                <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; background: #f8fafc; padding: 10px; border-radius: 6px;">
+                    访问此项目需要授权。<br>
+                    <span style="font-size: 0.8rem; color: #475569;">
+                        提示：密码请查看知识星球置顶帖或联系管理员获取
+                    </span>
+                </div>
             </div>
             
             <div class="form-group">
-                <label>访问密码</label>
-                <div class="password-wrapper">
-                    <input type="password" id="authPassword" class="form-input" placeholder="请输入密码">
-                    <i class="fa-solid fa-eye password-toggle" onclick="togglePassword('authPassword')"></i>
+                <input type="password" id="accessPassword" class="form-input" placeholder="输入访问密码..." onkeydown="if(event.key==='Enter') verifyPassword()">
+                <div style="margin-top: 10px; display: flex; justify-content: space-between; font-size: 0.85rem;">
+                    <label style="cursor: pointer; display: flex; align-items: center; user-select: none;">
+                        <input type="checkbox" id="chkRemember" style="margin-right: 5px;"> 30天免密登录
+                    </label>
                 </div>
-                <div id="authError" style="color: #ef4444; font-size: 0.85rem; margin-top: 0.5rem; display: none;">密码错误</div>
+                <div id="pwdError" style="color: #ef4444; font-size: 0.85rem; margin-top: 5px; display: none;">密码错误，请重试</div>
             </div>
 
-            <div class="form-group">
-                <div class="form-check">
-                    <input type="checkbox" id="rememberMe"> 
-                    <span style="font-size: 0.9rem;">记住密码 (<span id="rememberDaysDisplay">30</span>天免登)</span>
-                </div>
-            </div>
-
-            <div class="modal-actions">
-                <button class="btn btn-outline" onclick="closeAuthModal()">取消</button>
-                <button class="btn btn-primary" onclick="submitAuth()">验证访问</button>
+            <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                <button onclick="closeModal()" class="btn btn-outline" style="flex: 1;">取消</button>
+                <button onclick="verifyPassword()" class="btn btn-primary" style="flex: 1;">验证进入</button>
             </div>
         </div>
     </div>
-
-    <!-- Extra Content Modal (Markdown) -->
-    <div id="contentModal" class="modal-overlay">
-        <div class="modal-box" style="max-width: 600px; width: 95%;">
-            <h3 class="modal-title" id="contentTitle">详细信息</h3>
-            <div id="contentBody" class="markdown-body" style="max-height: 60vh; overflow-y: auto;"></div>
-            <div class="modal-actions" style="margin-top: 1rem;">
-                <button class="btn btn-primary" onclick="document.getElementById('contentModal').classList.remove('active')">关闭</button>
-            </div>
+    <!-- 知识星球 Modal (略，保持原有) -->
+    <div id="planetModal" class="modal-overlay">
+        <div class="modal-box" style="text-align: center;">
+            <div style="font-size: 3rem;">🪐</div><h3>知识星球</h3><p>获取源码与支持</p><button onclick="document.getElementById('planetModal').classList.remove('active')" class="btn btn-primary">关闭</button>
         </div>
     </div>
 
+    <script src="js/main.js"></script>
     <script>
+        // === 全局状态 ===
+        let allCards = [];
         let currentPage = 1;
-        let currentSearch = '';
-        let currentAuthFolder = null;
-        let currentAuthUrl = null;
+        let pageSize = 12; // 默认值
 
-        // --- Init ---
-        window.onload = () => {
-            loadProjects(1);
-            checkRedirect();
-        };
-
-        // --- Data Loading ---
-        async function loadProjects(page = 1) {
-            currentPage = page;
-            const container = document.getElementById('projectGrid');
-            const stats = document.getElementById('searchStats');
-            
-            // Show loading state if needed, or skeleton
-            
+        window.onload = async function() {
+            // 1. 获取分页配置 (假设通过 settings API 或 upload.js 的 list 接口返回，这里尝试调用 api/settings 如果有，否则默认12)
             try {
-                const url = `/api/list?page=${page}&search=${encodeURIComponent(currentSearch)}`;
-                const res = await fetch(url);
+                const res = await fetch('/api/settings');
                 const data = await res.json();
-                
-                // Update Stats
-                if (currentSearch) {
-                    stats.classList.remove('hidden');
-                    document.getElementById('totalResults').innerText = data.total;
-                } else {
-                    stats.classList.add('hidden');
-                }
-
-                // Render Grid
-                container.innerHTML = '';
-                if (data.items.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-result" style="grid-column: 1/-1;">
-                            <i class="fa-solid fa-search" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.2;"></i>
-                            <p>没有找到相关项目</p>
-                        </div>
-                    `;
-                } else {
-                    data.items.forEach(p => renderCard(p, container));
-                }
-
-                // Render Pagination
-                renderPagination(data.page, data.totalPages);
-
-            } catch(e) {
-                console.error(e);
-            }
-        }
-
-        function renderCard(p, container) {
-            const card = document.createElement('div');
-            card.className = 'project-card';
-            
-            // Icon
-            let iconHtml = '';
-            if (p.icon_url && p.icon_url.startsWith('http')) {
-                iconHtml = `<img src="${p.icon_url}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`;
-            } else {
-                iconHtml = `<i class="${p.icon_url || 'fa-solid fa-folder'}" style="font-size: 1.5rem;"></i>`;
-            }
-
-            // Extra Buttons
-            let extraBtnsHtml = '';
-            try {
-                const btns = JSON.parse(p.extra_buttons || '[]');
-                if (btns.length > 0) {
-                    extraBtnsHtml = '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">';
-                    btns.forEach(b => {
-                        if (b.type === 'link') {
-                            extraBtnsHtml += `<a href="${b.content}" target="_blank" class="btn btn-sm btn-outline">${b.name}</a>`;
-                        } else {
-                            // Text Popup
-                            // Use encodeURIComponent to safely pass content
-                            const safeContent = encodeURIComponent(b.content);
-                            extraBtnsHtml += `<button class="btn btn-sm btn-outline" onclick="showContentModal('${b.name}', '${safeContent}')">${b.name}</button>`;
-                        }
-                    });
-                    extraBtnsHtml += '</div>';
-                }
+                if(data.pageSize) pageSize = data.pageSize;
             } catch(e) {}
 
-            card.innerHTML = `
-                <div class="card-icon ${p.is_encrypted ? 'locked' : ''}">
-                    ${iconHtml}
-                </div>
-                <div class="card-title">
-                    ${p.project_name} 
-                    ${p.is_encrypted ? '<i class="fa-solid fa-lock" style="font-size:0.8rem; color:#ef4444; margin-left:5px;"></i>' : ''}
-                </div>
-                <div class="card-meta">
-                    ${extraBtnsHtml}
-                </div>
-                <div class="card-actions">
-                    ${getActionButton(p)}
-                </div>
-            `;
-            container.appendChild(card);
-        }
-
-        function getActionButton(p) {
-            const url = `/projects/${p.folder_name}/index.html`;
-            if (p.is_encrypted) {
-                return `<button class="btn btn-primary" style="width:100%" onclick="handleAuth('${p.folder_name}', '${p.project_name}', ${p.remember_days}, '${url}')">
-                            <i class="fa-solid fa-lock"></i> 私密访问
-                        </button>`;
-            } else {
-                return `<a href="${url}" target="_blank" class="btn btn-primary" style="width:100%">
-                            <i class="fa-solid fa-external-link-alt"></i> 立即访问
-                        </a>`;
+            allCards = Array.from(document.querySelectorAll('.project-card'));
+            
+            // 2. 检查自动跳转 (守门员脚本)
+            const params = new URLSearchParams(window.location.search);
+            const target = params.get('target');
+            if (target) {
+                // 查找对应卡片获取 Title
+                const card = allCards.find(c => c.dataset.name.includes(target.toLowerCase()));
+                const title = card ? card.querySelector('.card-title').innerText : target;
+                // 自动打开弹窗
+                handleAccess(target, true, title);
+                // 清理 URL
+                window.history.replaceState({}, document.title, "/");
             }
+
+            renderPage(1);
+        };
+
+        // === 分页逻辑 ===
+        function renderPage(page) {
+            currentPage = page;
+            const start = (page - 1) * pageSize;
+            const end = start + pageSize;
+            
+            // 隐藏所有，显示当前页
+            allCards.forEach(c => c.style.display = 'none');
+            
+            // 如果处于搜索状态，不分页
+            if (document.getElementById('searchInput').value) return; 
+
+            const pageItems = allCards.slice(start, end);
+            pageItems.forEach(c => c.style.display = 'flex');
+
+            renderPagination();
         }
 
-        function renderPagination(current, total) {
+        function renderPagination() {
+            const totalPages = Math.ceil(allCards.length / pageSize);
             const container = document.getElementById('pagination');
             container.innerHTML = '';
-            if (total <= 1) return;
+            
+            if (totalPages <= 1) return;
 
-            // Prev
-            const prev = document.createElement('button');
-            prev.className = 'page-btn';
-            prev.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
-            prev.disabled = current === 1;
-            prev.onclick = () => loadProjects(current - 1);
-            container.appendChild(prev);
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.innerText = i;
+                btn.onclick = () => renderPage(i);
+                container.appendChild(btn);
+            }
+        }
 
-            // Numbers (Simple logic for now)
-            for (let i = 1; i <= total; i++) {
-                if (i === 1 || i === total || (i >= current - 1 && i <= current + 1)) {
-                    const btn = document.createElement('button');
-                    btn.className = `page-btn ${i === current ? 'active' : ''}`;
-                    btn.innerText = i;
-                    btn.onclick = () => loadProjects(i);
-                    container.appendChild(btn);
-                } else if (i === current - 2 || i === current + 2) {
-                    const span = document.createElement('span');
-                    span.innerText = '...';
-                    span.style.padding = '0.5rem';
-                    container.appendChild(span);
+        // === 搜索逻辑 (Popover + 全局过滤) ===
+        const searchInput = document.getElementById('searchInput');
+        const popover = document.getElementById('searchPopover');
+        const clearBtn = document.getElementById('clearSearch');
+
+        searchInput.addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase();
+            clearBtn.style.display = val ? 'block' : 'none';
+            
+            if (!val) {
+                popover.style.display = 'none';
+                renderPage(1); // 恢复分页
+                return;
+            }
+
+            // 过滤
+            const matched = allCards.filter(c => c.dataset.name.includes(val));
+            
+            // 1. 主视图：显示所有匹配项 (取消分页)
+            allCards.forEach(c => c.style.display = 'none');
+            matched.forEach(c => c.style.display = 'flex');
+            document.getElementById('pagination').innerHTML = ''; 
+
+            // 2. 下拉提示：显示前5个
+            popover.innerHTML = '';
+            popover.style.display = 'block';
+            
+            if (matched.length > 0) {
+                matched.slice(0, 5).forEach(c => {
+                    const title = c.querySelector('.card-title').innerText;
+                    const div = document.createElement('div');
+                    div.className = 'search-item';
+                    div.innerHTML = `<span>${title}</span> <span style="font-size:0.8rem;color:#999;">GO &rarr;</span>`;
+                    div.onclick = () => c.querySelector('button, a').click(); // 触发访问
+                    popover.appendChild(div);
+                });
+                if (matched.length > 5) {
+                    const more = document.createElement('div');
+                    more.className = 'search-item';
+                    more.style.justifyContent = 'center';
+                    more.style.color = '#666';
+                    more.innerText = `查看剩余 ${matched.length - 5} 个结果...`;
+                    more.onclick = () => popover.style.display = 'none';
+                    popover.appendChild(more);
                 }
+            } else {
+                popover.innerHTML = '<div class="search-item" style="justify-content:center; color:#999;">无匹配项目</div>';
             }
-
-            // Next
-            const next = document.createElement('button');
-            next.className = 'page-btn';
-            next.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
-            next.disabled = current === total;
-            next.onclick = () => loadProjects(current + 1);
-            container.appendChild(next);
-        }
-
-        // --- Search Logic ---
-        function handleSearch(e) {
-            if (e.key === 'Enter') {
-                const val = e.target.value.trim();
-                currentSearch = val;
-                document.getElementById('clearSearch').style.display = val ? 'block' : 'none';
-                loadProjects(1);
-            }
-        }
+        });
 
         function clearSearch() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('clearSearch').style.display = 'none';
-            currentSearch = '';
-            loadProjects(1);
+            searchInput.value = '';
+            popover.style.display = 'none';
+            clearBtn.style.display = 'none';
+            renderPage(1);
         }
 
-        // --- Auth Logic ---
-        function handleAuth(folderName, projectName, days, url) {
-            currentAuthFolder = folderName;
-            currentAuthUrl = url;
-            
-            document.getElementById('authTitle').innerText = projectName;
-            document.getElementById('rememberDaysDisplay').innerText = days || 30;
-            document.getElementById('authPassword').value = '';
-            document.getElementById('authError').style.display = 'none';
-            document.getElementById('authModal').classList.add('active');
+        // === 访问控制 ===
+        function getCookie(name) {
+            const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+            return v ? v[2] : null;
         }
 
-        function closeAuthModal() {
-            document.getElementById('authModal').classList.remove('active');
-            currentAuthFolder = null;
-        }
-
-        async function submitAuth() {
-            const pwd = document.getElementById('authPassword').value;
-            const remember = document.getElementById('rememberMe').checked;
-            
-            if (!pwd) return;
-
-            try {
-                const res = await fetch('/api/verify', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        folderName: currentAuthFolder,
-                        password: pwd,
-                        rememberMe: remember
-                    })
-                });
-                
-                const data = await res.json();
-                if (data.success) {
-                    window.location.href = currentAuthUrl;
-                } else {
-                    document.getElementById('authError').style.display = 'block';
-                }
-            } catch(e) {
-                alert('验证出错');
+        // 兼容旧调用，支持 title 参数
+        function handleAccess(folder, isLocked, titleOverride) {
+            if (!isLocked) {
+                window.location.href = `/projects/${folder}/index.html`;
+                return;
             }
-        }
-
-        function togglePassword(id) {
-            const el = document.getElementById(id);
-            el.type = el.type === 'password' ? 'text' : 'password';
-        }
-
-        // --- Markdown Content Modal ---
-        function showContentModal(title, encodedContent) {
-            const content = decodeURIComponent(encodedContent);
-            document.getElementById('contentTitle').innerText = title;
-            document.getElementById('contentBody').innerHTML = marked.parse(content);
-            document.getElementById('contentModal').classList.add('active');
-        }
-
-        // --- Redirect Check ---
-        function checkRedirect() {
-            const params = new URLSearchParams(window.location.search);
-            const denied = params.get('denied');
             
-            if (denied && denied !== '1') {
-                fetchProjectInfo(denied);
-            } else if (denied === '1') {
-                const folder = params.get('project');
-                if (folder) fetchProjectInfo(folder);
+            // 检查 Cookie
+            if (getCookie(`access_${folder}`) === 'ok') {
+                window.location.href = `/projects/${folder}/index.html`;
+                return;
             }
+
+            window.currentFolder = folder;
+            
+            // 获取标题
+            let title = titleOverride;
+            if(!title) {
+                const c = allCards.find(x => x.dataset.name.includes(folder.toLowerCase()));
+                title = c ? c.querySelector('.card-title').innerText : folder;
+            }
+
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('accessPassword').value = '';
+            document.getElementById('pwdError').style.display = 'none';
+            
+            // 弹出 Modal
+            document.querySelectorAll('.modal-overlay').forEach(el=>el.classList.remove('active')); // 关闭其他
+            document.getElementById('passwordModal').classList.add('active');
         }
 
-        async function fetchProjectInfo(folderName) {
-            // We need an API to get single project info or search for it
-            // Reuse list API
-            const res = await fetch(`/api/list?search=${folderName}`);
+        function closeModal() {
+            document.querySelectorAll('.modal-overlay').forEach(el=>el.classList.remove('active'));
+        }
+        function showPlanetInfo() { document.getElementById('planetModal').classList.add('active'); }
+
+        async function verifyPassword() {
+            const password = document.getElementById('accessPassword').value;
+            const remember = document.getElementById('chkRemember').checked;
+            
+            const res = await fetch('/api/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folderName: window.currentFolder, password, remember })
+            });
+
             const data = await res.json();
-            const project = data.items.find(p => p.folder_name === folderName);
-            if (project) {
-                handleAuth(project.folder_name, project.project_name, project.remember_days, `/projects/${folderName}/index.html`);
-                document.getElementById('authError').innerText = "请先验证密码";
-                document.getElementById('authError').style.display = 'block';
+            if (data.success) {
+                // 验证成功提示
+                const box = document.querySelector('#passwordModal .modal-box');
+                box.innerHTML = '<div style="text-align:center; padding:2rem;"><h3 style="color:#22c55e;">验证通过</h3><p>正在跳转...</p></div>';
+                setTimeout(() => {
+                    window.location.href = `/projects/${window.currentFolder}/index.html`;
+                }, 1500);
+            } else {
+                document.getElementById('pwdError').style.display = 'block';
             }
         }
     </script>
