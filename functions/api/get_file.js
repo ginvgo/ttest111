@@ -1,6 +1,20 @@
 
 export async function onRequestGet(context) {
   const { request, env } = context;
+
+  // Check Admin Auth
+  const cookie = request.headers.get('Cookie') || '';
+  const match = cookie.match(/admin_session=([^;]+)/);
+  let isAdmin = false;
+  if (match) {
+      const token = match[1];
+      try {
+          const res = await env.DB.prepare('SELECT 1 FROM admin_users WHERE session_token = ?').bind(token).first();
+          if (res) isAdmin = true;
+      } catch(e) {}
+  }
+  if (!isAdmin) return new Response('Unauthorized', { status: 401 });
+
   const url = new URL(request.url);
   const path = url.searchParams.get('path'); // e.g., projects/my-project/index.html
 
