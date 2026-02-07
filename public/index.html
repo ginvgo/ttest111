@@ -3,155 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>项目展示</title>
+    <title>Project Portfolio</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Professional Search Bar */
+        .search-container {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            padding-left: 3rem;
+            border-radius: 50px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .search-icon {
+            position: absolute;
+            left: 1.2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            width: 1.2rem;
+            height: 1.2rem;
+        }
+        
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 3rem;
+            padding-bottom: 3rem;
+        }
+        .page-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #64748b;
+        }
+        .page-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .page-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Project Card Enhancements */
+        .project-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .project-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .project-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0.5rem 0;
+            color: #1e293b;
+        }
+        .project-id {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
         <a href="/" class="brand">MyLab</a>
-        <!-- 搜索区域 -->
-        <div style="position:relative; width: 100%; max-width: 400px;">
-            <div class="search-box">
-                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                <input type="text" id="searchInput" class="search-input" placeholder="全局搜索项目..." oninput="filterProjects()">
-                <button id="clearSearch" onclick="clearSearch()" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#999;">✕</button>
-            </div>
-            <div id="searchResultHint" style="position:absolute; top: 100%; left: 10px; font-size: 0.8rem; color: #666; margin-top: 4px;"></div>
-        </div>
         <div class="nav-links">
             <a href="https://github.com/yourname" target="_blank">GitHub</a>
         </div>
     </nav>
 
     <div class="container">
-        <header style="text-align: center; margin: 4rem 0;">
-            <h1>Project Portfolio</h1>
+        <header style="text-align: center; margin: 4rem 0 2rem;">
+            <h1 style="margin-bottom: 2rem; color: #0f172a;">Discover Projects</h1>
+            <div class="search-container">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search projects by name or ID..." oninput="debounceSearch()">
+            </div>
+            <div id="searchStats" style="margin-top: 1rem; color: #64748b; font-size: 0.9rem; min-height: 1.5rem;"></div>
         </header>
 
         <main id="project-list" class="project-grid">
-            <!-- PROJECT_LIST_START -->
-
-      <article class="project-card" data-name="number1">
-        <div class="card-icon locked"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div>
-        <h3 class="card-title">number1</h3>
-        <div class="card-meta">
-            需要密码访问
-        </div>
-        <div class="card-actions">
-          <button onclick="handleAccess('number1', true)" class="btn btn-primary btn-sm">访问</button>
-          <button onclick="showPlanetInfo()" class="btn btn-outline btn-sm">知识星球</button>
-          
-        </div>
-      </article>
-    
-<!-- PROJECT_LIST_END -->
+            <!-- Dynamic Content -->
         </main>
+
+        <div id="pagination" class="pagination"></div>
     </div>
 
     <!-- Password Modal -->
     <div id="passwordModal" class="modal-overlay">
         <div class="modal-box">
-            <div style="text-align: center;">
-                <h3 id="modalProjectName">受限项目</h3>
-                <p style="color:#666; font-size:0.9rem; margin-bottom:1rem;">请输入密码访问。</p>
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <h3 id="modalProjectName" style="font-size: 1.5rem; color: #1e293b; margin-bottom: 0.5rem;">Protected Project</h3>
+                <p style="color:#64748b; font-size:0.9rem;">
+                    此项目为加密项目，需要密码访问。<br>
+                    <span style="font-size: 0.8rem; opacity: 0.8;">(可通过联系管理员或关注公众号获取密码)</span>
+                </p>
             </div>
+            
             <div class="form-group">
-                <input type="password" id="accessPassword" class="form-input" placeholder="Password">
+                <input type="password" id="accessPassword" class="form-input" placeholder="请输入访问密码" onkeypress="if(event.key==='Enter') verifyPassword()">
                 <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
-                    <label style="font-size: 0.9rem; cursor: pointer; display: flex; align-items: center;">
+                    <label style="font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; color: #64748b;">
                         <input type="checkbox" id="chkRemember" style="margin-right: 5px;"> 记住密码
-                        <span id="rememberDuration" style="font-size:0.8rem; color:#999; margin-left:4px;">(30天)</span>
                     </label>
                 </div>
-                <div id="pwdError" style="color:red; font-size:0.85rem; display:none; margin-top:5px;">密码错误</div>
+                <div id="pwdError" style="color:#ef4444; font-size:0.85rem; display:none; margin-top:8px;">密码错误，请重试</div>
             </div>
+            
             <div style="display:flex; gap:10px; margin-top:1.5rem;">
                 <button onclick="closeModal()" class="btn btn-outline" style="flex:1;">取消</button>
-                <button onclick="verifyPassword()" class="btn btn-primary" style="flex:1;">进入</button>
+                <button onclick="verifyPassword()" class="btn btn-primary" style="flex:1;">立即访问</button>
             </div>
         </div>
     </div>
 
     <script src="js/main.js"></script>
     <script>
-        function filterProjects() {
-            const val = document.getElementById('searchInput').value.toLowerCase();
-            const cards = document.querySelectorAll('.project-card');
-            const clearBtn = document.getElementById('clearSearch');
-            const hint = document.getElementById('searchResultHint');
+        let currentPage = 1;
+        let searchTimer = null;
+
+        // Init
+        loadProjects(1);
+
+        function debounceSearch() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                currentPage = 1;
+                loadProjects(1);
+            }, 300);
+        }
+
+        async function loadProjects(page) {
+            currentPage = page;
+            const search = document.getElementById('searchInput').value;
+            const listEl = document.getElementById('project-list');
+            const statsEl = document.getElementById('searchStats');
+            const pagEl = document.getElementById('pagination');
+
+            listEl.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#94a3b8;">Loading...</div>';
             
-            clearBtn.style.display = val ? 'block' : 'none';
-            
-            let count = 0;
-            cards.forEach(card => {
-                const name = card.getAttribute('data-name');
-                if (name && name.includes(val)) {
-                    card.style.display = 'flex';
-                    count++;
+            try {
+                const res = await fetch(`/api/list?page=${page}&search=${encodeURIComponent(search)}`);
+                const data = await res.json();
+                
+                // Update Stats
+                statsEl.innerText = search ? `Found ${data.total} results` : '';
+
+                // Render List
+                if (data.items.length === 0) {
+                    listEl.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#94a3b8;">No projects found.</div>';
                 } else {
-                    card.style.display = 'none';
+                    listEl.innerHTML = data.items.map(item => `
+                        <article class="project-card" onclick="handleAccess('${item.folder_name}', ${item.is_encrypted}, '${item.project_name || item.folder_name}')">
+                            <div class="card-icon ${item.is_encrypted ? 'locked' : ''}">
+                                ${item.is_encrypted 
+                                    ? '<svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>' 
+                                    : '<svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>'
+                                }
+                            </div>
+                            <h3 class="project-name">${item.project_name || item.folder_name}</h3>
+                            <div class="project-id">ID: ${item.folder_name}</div>
+                            <div class="card-meta">
+                                ${item.is_encrypted ? 'Private Access' : 'Public Project'}
+                            </div>
+                        </article>
+                    `).join('');
                 }
-            });
-            
-            if (val) {
-                hint.innerText = `找到 ${count} 个相关项目`;
-            } else {
-                hint.innerText = '';
+
+                // Render Pagination
+                renderPagination(data.page, data.totalPages);
+
+            } catch (e) {
+                console.error(e);
+                listEl.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:red;">Error loading projects.</div>';
             }
         }
 
-        function clearSearch() {
-            document.getElementById('searchInput').value = '';
-            filterProjects();
-        }
-
-        // Auth Logic
-        function getCookie(name) {
-            const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
-            return v ? v[2] : null;
-        }
-
-        function handleAccess(folder, isEncrypted) {
-            if (!isEncrypted) {
-                window.location.href = `/projects/${folder}/index.html`;
-                return;
-            }
-            
-            // Check cookie
-            if (getCookie(`access_${folder}`) === 'ok') {
-                window.location.href = `/projects/${folder}/index.html`;
+        function renderPagination(current, total) {
+            const el = document.getElementById('pagination');
+            if (total <= 1) {
+                el.innerHTML = '';
                 return;
             }
 
-            window.currentFolder = folder;
-            document.getElementById('modalProjectName').innerText = folder;
-            document.getElementById('accessPassword').value = '';
-            document.getElementById('chkRemember').checked = false;
-            document.getElementById('pwdError').style.display = 'none';
-            document.getElementById('passwordModal').classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('passwordModal').classList.remove('active');
-        }
-
-        async function verifyPassword() {
-            const password = document.getElementById('accessPassword').value;
-            const remember = document.getElementById('chkRemember').checked;
+            let html = '';
+            // Prev
+            html += `<button class="page-btn" ${current === 1 ? 'disabled' : ''} onclick="loadProjects(${current - 1})">Prev</button>`;
             
-            const res = await fetch('/api/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ folderName: window.currentFolder, password, remember })
-            });
-
-            const data = await res.json();
-            if (data.success) {
-                window.location.href = `/projects/${window.currentFolder}/index.html`;
-            } else {
-                document.getElementById('pwdError').style.display = 'block';
+            // Numbers (Simple implementation)
+            for (let i = 1; i <= total; i++) {
+                if (i === 1 || i === total || (i >= current - 1 && i <= current + 1)) {
+                    html += `<button class="page-btn ${i === current ? 'active' : ''}" onclick="loadProjects(${i})">${i}</button>`;
+                } else if (i === current - 2 || i === current + 2) {
+                    html += `<span style="padding:0.5rem;">...</span>`;
+                }
             }
+
+            // Next
+            html += `<button class="page-btn" ${current === total ? 'disabled' : ''} onclick="loadProjects(${current + 1})">Next</button>`;
+            
+            el.innerHTML = html;
         }
+
+        // Override handleAccess to support name
+        // The original handleAccess is in main.js, we can override or pass params
+        // But main.js functions are global.
+        // I will update main.js to accept name, but for now I pass it here.
     </script>
 </body>
 </html>
