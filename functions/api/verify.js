@@ -5,26 +5,22 @@ export async function onRequestPost(context) {
   const project = await env.DB.prepare('SELECT passwords, is_encrypted, remember_days FROM projects WHERE folder_name = ?').bind(folderName).first();
 
   if (!project) return new Response('Project not found', { status: 404 });
+  // 如果未加密，直接通过
   if (!project.is_encrypted) return new Response(JSON.stringify({ success: true }));
 
   const passwords = JSON.parse(project.passwords || '[]');
   
   if (passwords.includes(password)) {
-    // 密码正确
     const headers = new Headers();
     headers.append('Content-Type', 'application/json');
 
-    // 无论是否勾选记住密码，都必须设置 Cookie，否则无法通过 Middleware 验证
-    // 如果不勾选记住密码，则设置 Session Cookie (无 Max-Age)
-    let cookieStr = `auth_${folderName}=${encodeURIComponent(password)}; Path=/; SameSite=Lax`;
-    
+    // 如果勾选记住密码
     if (remember) {
-        const days = project.remember_days || 30;
+        const days = project.remember_days || 30; // 默认30天
         const maxAge = days * 86400;
-        cookieStr += `; Max-Age=${maxAge}`;
+        // Cookie 名称需与 Gatekeeper 脚本中的检查逻辑一致 (access_项目名)
+        headers.append('Set-Cookie', `access_${folderName}=ok; Path=/; Max-Age=${maxAge}; SameSite=Lax`);
     }
-
-    headers.append('Set-Cookie', cookieStr);
 
     return new Response(JSON.stringify({ success: true }), { headers });
   }
