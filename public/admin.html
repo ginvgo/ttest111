@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>项目管理后台</title>
+    <!-- 引入外部样式 (假设 style.css 已更新) -->
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Admin 页面专用样式补充 */
+        body { background: #f1f5f9; height: 100vh; overflow: hidden; }
+        
+        .login-layer { position: fixed; inset: 0; background: #f1f5f9; z-index: 5000; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: white; width: 380px; padding: 2.5rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid var(--border); }
+        
+        /* 布局调整 */
+        .admin-layout { display: grid; grid-template-columns: 260px 1fr; height: calc(100vh - 60px); }
+        .sidebar { background: white; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .main-content { padding: 2rem; overflow-y: auto; display: flex; justify-content: center; }
+        .editor-card { background: white; width: 100%; max-width: 900px; border-radius: 8px; border: 1px solid var(--border); padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: fit-content; }
+
+        /* 标签页 */
+        .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+        .tab { padding: 0.8rem 1.5rem; cursor: pointer; color: var(--text-muted); font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .tab:hover { color: var(--primary); background: #f8fafc; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: white; }
+
+        /* 代码编辑器 */
+        .code-layout { display: grid; grid-template-columns: 200px 1fr; height: 500px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: white; }
+        .file-list { background: #f8fafc; border-right: 1px solid var(--border); overflow-y: auto; padding: 0.5rem; }
+        .file-item { padding: 0.5rem 0.8rem; cursor: pointer; font-size: 0.85rem; border-radius: 4px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-item:hover { background: #e2e8f0; }
+        .file-item.active { background: #eff6ff; color: var(--primary); font-weight: 600; }
+        .code-area { width: 100%; height: 100%; border: none; padding: 1rem; font-family: 'Menlo', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.5; outline: none; resize: none; }
+
+        /* JS 库选择 */
+        .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.8rem; margin-bottom: 1rem; }
+        .lib-item { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 0.85rem; user-select: none; }
+        .lib-item:hover { border-color: var(--primary); background: #eff6ff; }
+        
+        .multi-select { width: 100%; height: 120px; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; }
+        .multi-select option { padding: 4px; border-radius: 2px; }
+        .multi-select option:checked { background-color: var(--primary); color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- ================= 1. 登录层 ================= -->
+    <div id="loginLayer" class="login-layer">
+        <div class="login-card">
+            <h2 style="text-align: center; margin-bottom: 2rem; color: #1e293b;">Admin Login</h2>
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="uUser" class="form-input" placeholder="Username">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <div class="password-wrapper">
+                    <input type="password" id="uPass" class="form-input" placeholder="Password">
+                    <span class="password-toggle" onclick="toggleLoginPassword()">
+                        <svg id="eyeIcon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    </span>
+                </div>
+            </div>
+            <button onclick="doLogin()" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.8rem;">登 录</button>
+        </div>
+    </div>
+
+    <!-- ================= 2. 主界面 ================= -->
+    <div id="mainDashboard" class="hidden">
+        <!-- 顶部导航 -->
+        <nav class="navbar">
+            <div class="brand">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                控制台
+            </div>
+            <a href="/" target="_blank" class="btn btn-text">查看首页 &rarr;</a>
+        </nav>
+
+        <div class="admin-layout">
+            <!-- 左侧边栏 -->
+            <aside class="sidebar">
+                <div class="sidebar-header" style="flex-direction: column; gap: 10px; padding: 1.2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700; color: #334155;">项目列表</span>
+                        <div style="display:flex; gap:5px;">
+                            <button onclick="openSettings()" class="btn btn-outline btn-sm" title="全局设置">⚙️</button>
+                            <button onclick="initCreateMode()" class="btn btn-primary btn-sm" title="新建项目">+</button>
+                        </div>
+                    </div>
+                    <div class="search-box" style="width: 100%;">
+                        <input type="text" id="adminSearch" class="search-input" placeholder="搜索 ID..." oninput="renderList()" style="padding-left: 1rem;">
+                    </div>
+                </div>
+                <div id="projectList" class="project-list">
+                    <!-- JS 动态填充 -->
+                </div>
+            </aside>
+
+            <!-- 右侧操作区 -->
+            <main class="main-content">
+                <div class="editor-card">
+                    <div class="editor-header">
+                        <h2 id="editorTitle">新建项目</h2>
+                        <button id="btnDelete" class="btn btn-danger btn-sm hidden" onclick="confirmDelete()">删除此项目</button>
+                    </div>
+
+                    <!-- 标签页 -->
+                    <div class="tabs">
+                        <div class="tab active" onclick="switchTab('settings')" id="tab-settings">基础配置 & 文件</div>
+                        <div class="tab hidden" onclick="switchTab('code')" id="tab-code">代码在线编辑</div>
+                    </div>
+
+                    <!-- Tab 1: 配置 -->
+                    <div id="view-settings">
+                        <form id="uploadForm">
+                            <!-- 基础信息 -->
+                            <div class="form-group">
+                                <label>项目 ID (文件夹名称)</label>
+                                <input type="text" name="folderName" id="f_name" class="form-input" required pattern="[A-Za-z0-9\-_]+">
+                                <small style="color: var(--text-muted);">创建后不可修改 ID</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label>项目文件 <span id="fileHint" style="color: var(--primary);"></span></label>
+                                <input type="file" name="files" id="f_files" class="form-input" multiple>
+                            </div>
+
+                            <!-- 开关 -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; border: 1px solid var(--border);">
+                                    <label style="display: flex; align-items: center; cursor: pointer;">
+                                        <input type="checkbox" name="isPublic" id="f_public" value="true" checked style="margin-right: 8px;">
+                                        在首页公开展示
+                                    </label>
+                                </div>
+                                <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; border: 1px solid var(--border);">
+                                    <label style="display: flex; align-items: center; cursor: pointer;">
+                                        <input type="checkbox" name="isEncrypted" id="f_encrypted" value="true" onchange="togglePwdArea()" style="margin-right: 8px;">
+                                        启用密码保护
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 密码设置区域 -->
+                            <div id="pwdArea" class="hidden" style="background: #eff6ff; padding: 1.5rem; border-radius: 6px; margin-bottom: 1.5rem; border: 1px solid #bfdbfe;">
+                                <div class="form-group">
+                                    <label>访问密码 (多个用逗号分隔)</label>
+                                    <input type="text" name="passwords" id="f_passwords" class="form-input" placeholder="例: 123, admin">
+                                </div>
+                                <div class="form-group">
+                                    <label>记住密码有效期 (天)</label>
+                                    <input type="number" name="rememberDays" id="f_rememberDays" class="form-input" value="30" min="1" max="365">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label>相关文章链接 (可选)</label>
+                                    <input type="url" name="articleLink" id="f_link" class="form-input" placeholder="https://...">
+                                </div>
+                            </div>
+
+                            <!-- JS 引用注入管理 (新功能) -->
+                            <div style="border-top: 1px solid var(--border); padding-top: 1.5rem; margin-top: 1.5rem;">
+                                <h3 style="font-size: 1rem; margin-bottom: 1rem;">JS 引用管理 (自动注入到 HTML)</h3>
+                                
+                                <div class="form-group">
+                                    <label>1. 常用 CDN 库</label>
+                                    <div class="lib-grid">
+                                        <label class="lib-item"><input type="checkbox" name="libs" value="jquery"> jQuery</label>
+                                        <label class="lib-item"><input type="checkbox" name="libs" value="vue"> Vue 2</label>
+                                        <label class="lib-item"><input type="checkbox" name="libs" value="react"> React 17</label>
+                                        <label class="lib-item"><input type="checkbox" name="libs" value="axios"> Axios</label>
+                                        <label class="lib-item"><input type="checkbox" name="libs" value="lodash"> Lodash</label>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>2. 引用项目内 JS 文件 (按住 Ctrl/Cmd 多选)</label>
+                                    <select id="projectJsFiles" multiple class="multi-select">
+                                        <option value="" disabled>请先创建项目并上传 JS 文件</option>
+                                    </select>
+                                    <small style="color: var(--text-muted);">此处列出的是你上传到该项目文件夹下的所有 .js 文件</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>3. 自定义 Script 代码 (不含 &lt;script&gt; 标签)</label>
+                                    <textarea id="customJsCode" class="form-input" style="height: 100px; font-family: monospace;" placeholder="console.log('Hello from custom script');"></textarea>
+                                </div>
+                            </div>
+
+                            <div style="text-align: right; margin-top: 2rem;">
+                                <button type="submit" id="btnSubmit" class="btn btn-primary" style="width: 100%; padding: 0.8rem;">保存配置</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tab 2: 代码编辑 -->
+                    <div id="view-code" class="hidden">
+                        <div style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 4px; font-size: 0.85rem;">
+                            ⚠️ 提示：在此处修改并保存代码后，系统将自动重新注入防复制代码和上述配置的 JS 库。
+                        </div>
+                        <div class="code-layout">
+                            <div class="file-list" id="codeFileList">
+                                <div style="padding:1rem; text-align:center; color:#999;">Loading...</div>
+                            </div>
+                            <textarea class="code-area" id="codeEditor" spellcheck="false" placeholder="请在左侧选择文件编辑..."></textarea>
+                        </div>
+                        <div style="text-align: right; margin-top: 1.5rem;">
+                            <button onclick="saveCode()" id="btnSaveCode" class="btn btn-primary">保存代码更改</button>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- ================= 3. Toast & Modal ================= -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 class="modal-title">操作确认</h3>
+            <p class="modal-desc" id="confirmText">确定要执行操作吗？</p>
+            <div class="modal-actions">
+                <button onclick="closeConfirmModal()" class="btn btn-outline">取消</button>
+                <button id="btnConfirmAction" class="btn btn-danger">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 class="modal-title">全局设置</h3>
+            <div class="form-group">
+                <label>每页展示项目数量</label>
+                <input type="number" id="settingPageSize" class="form-input" min="1" max="100">
+            </div>
+            <div class="modal-actions">
+                <button onclick="document.getElementById('settingsModal').classList.remove('active')" class="btn btn-outline">取消</button>
+                <button onclick="saveSettings()" class="btn btn-primary">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ 全局状态 ============
+        let allProjects = [];
+        let currentProjectName = null;
+        let currentFile = null;
+
+        // ============ 初始化 ============
+        window.onload = loadProjects;
+
+        // ============ 登录逻辑 ============
+        function toggleLoginPassword() {
+            const input = document.getElementById('uPass');
+            const icon = document.getElementById('eyeIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>';
+            } else {
+                input.type = 'password';
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>';
+            }
+        }
+
+        async function doLogin() {
+            const u = document.getElementById('uUser').value;
+            const p = document.getElementById('uPass').value;
+            if(!u || !p) return showToast('请输入账号密码', 'error');
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                const data = await res.json();
+                if(res.ok && data.success) {
+                    document.getElementById('loginLayer').classList.add('hidden');
+                    document.getElementById('mainDashboard').classList.remove('hidden');
+                    showToast('登录成功');
+                    loadProjects();
+                } else {
+                    showToast('账号或密码错误', 'error');
+                }
+            } catch(e) { showToast('网络错误', 'error'); }
+        }
+
+        // ============ 数据加载与列表渲染 ============
+        async function loadProjects() {
+            const res = await fetch('/api/list');
+            if (res.status === 401) {
+                document.getElementById('loginLayer').classList.remove('hidden');
+                document.getElementById('mainDashboard').classList.add('hidden');
+                return;
+            }
+            document.getElementById('loginLayer').classList.add('hidden');
+            document.getElementById('mainDashboard').classList.remove('hidden');
+            
+            allProjects = await res.json();
+            renderList();
+
+            if (!currentProjectName) initCreateMode();
+        }
+
+        function renderList() {
+            const filter = document.getElementById('adminSearch').value.toLowerCase();
+            const listEl = document.getElementById('projectList');
+            listEl.innerHTML = '';
+            
+            const filtered = allProjects.filter(p => p.folder_name.toLowerCase().includes(filter));
+            if(filtered.length === 0) listEl.innerHTML = '<div style="padding:1rem; text-align:center; color:#999;">无匹配</div>';
+
+            filtered.forEach(p => {
+                const div = document.createElement('div');
+                div.className = `list-item ${p.folder_name === currentProjectName ? 'active' : ''}`;
+                div.innerHTML = `
+                    <div style="font-weight:600;">${p.folder_name}</div>
+                    <div style="font-size:0.75rem; color:#64748b;">${p.is_public?'已发布':'隐藏'} · ${p.is_encrypted?'🔒':'🔓'}</div>
+                `;
+                div.onclick = () => selectProject(p.folder_name);
+                listEl.appendChild(div);
+            });
+        }
+
+        // ============ 选择项目逻辑 ============
+        async function selectProject(id) {
+            currentProjectName = id;
+            renderList();
+            
+            document.getElementById('editorTitle').innerText = '编辑项目: ' + id;
+            document.getElementById('btnDelete').classList.remove('hidden');
+            document.getElementById('tab-code').classList.remove('hidden');
+
+            const p = allProjects.find(x => x.folder_name === id);
+            
+            // 填充表单
+            document.getElementById('f_name').value = p.folder_name;
+            document.getElementById('f_name').readOnly = true;
+            document.getElementById('f_public').checked = !!p.is_public;
+            document.getElementById('f_encrypted').checked = !!p.is_encrypted;
+            
+            const pwds = JSON.parse(p.passwords || '[]');
+            document.getElementById('f_passwords').value = pwds.join(', ');
+            document.getElementById('f_rememberDays').value = p.remember_days || 30;
+            document.getElementById('f_link').value = p.article_link || '';
+
+            // 解析注入配置
+            let libConfig = { presets: [], customFiles: [], customCode: '' };
+            try {
+                const raw = JSON.parse(p.injected_libs || '{}');
+                // 兼容旧版数组格式
+                if (Array.isArray(raw)) libConfig.presets = raw;
+                else libConfig = { ...libConfig, ...raw };
+            } catch(e) {}
+
+            // 1. 设置预设库
+            document.querySelectorAll('input[name="libs"]').forEach(cb => {
+                cb.checked = libConfig.presets.includes(cb.value);
+            });
+
+            // 2. 加载 JS 文件列表并选中
+            await loadJsFilesForSelect(id, libConfig.customFiles);
+
+            // 3. 设置自定义代码
+            document.getElementById('customJsCode').value = libConfig.customCode || '';
+
+            document.getElementById('fileHint').innerText = '(可选: 上传覆盖)';
+            document.getElementById('f_files').required = false;
+
+            togglePwdArea();
+
+            // 如果当前在代码Tab，刷新文件列表
+            if(!document.getElementById('view-code').classList.contains('hidden')) {
+                loadFileList(id);
+            }
+        }
+
+        async function loadJsFilesForSelect(folder, selectedFiles = []) {
+            const select = document.getElementById('projectJsFiles');
+            select.innerHTML = '<option disabled>Loading...</option>';
+            try {
+                const res = await fetch(`/api/content?folder=${folder}`);
+                if(res.ok) {
+                    const data = await res.json();
+                    const jsFiles = data.files.filter(f => f.endsWith('.js'));
+                    select.innerHTML = '';
+                    if(jsFiles.length === 0) {
+                        select.innerHTML = '<option disabled>无 JS 文件</option>';
+                    } else {
+                        jsFiles.forEach(f => {
+                            const opt = document.createElement('option');
+                            opt.value = f;
+                            opt.innerText = f;
+                            if(selectedFiles.includes(f)) opt.selected = true;
+                            select.appendChild(opt);
+                        });
+                    }
+                }
+            } catch(e) {
+                select.innerHTML = '<option disabled>加载文件失败</option>';
+            }
+        }
+
+        function initCreateMode() {
+            currentProjectName = null;
+            renderList();
+            switchTab('settings');
+            
+            document.getElementById('editorTitle').innerText = '新建项目';
+            document.getElementById('btnDelete').classList.add('hidden');
+            document.getElementById('tab-code').classList.add('hidden');
+            
+            document.getElementById('uploadForm').reset();
+            document.getElementById('f_name').readOnly = false;
+            document.getElementById('f_projectName').value = ''; // Reset Project Name
+            document.getElementById('fileHint').innerText = '(必须上传)';
+            document.getElementById('f_files').required = true;
+            document.getElementById('projectJsFiles').innerHTML = '<option disabled>请先保存项目</option>';
+            
+            togglePwdArea();
+        }
+
+        // ============ 表单提交 (保存配置) ============
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerText = '正在保存...';
+
+            const formData = new FormData(e.target);
+            if(!e.target.isPublic.checked) formData.set('isPublic', 'false');
+            if(!e.target.isEncrypted.checked) formData.set('isEncrypted', 'false');
+
+            // 构造 injectedLibs JSON
+            const presets = [];
+            document.querySelectorAll('input[name="libs"]:checked').forEach(cb => presets.push(cb.value));
+            
+            const customFiles = [];
+            const select = document.getElementById('projectJsFiles');
+            for(let opt of select.options) {
+                if(opt.selected) customFiles.push(opt.value);
+            }
+
+            const customCode = document.getElementById('customJsCode').value;
+
+            const libConfig = { presets, customFiles, customCode };
+            formData.set('injectedLibs', JSON.stringify(libConfig));
+
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                const result = await res.json();
+                if(res.ok) {
+                    showToast('保存成功');
+                    const savedId = formData.get('folderName');
+                    await loadProjects();
+                    selectProject(savedId);
+                } else {
+                    showToast('保存失败: ' + result.message, 'error');
+                }
+            } catch(e) { showToast('网络错误', 'error'); }
+            finally { btn.disabled = false; btn.innerText = '保存配置'; }
+        });
+
+        // ============ 代码编辑功能 (Bug修复版) ============
+        async function loadFileList(folder) {
+            const listEl = document.getElementById('codeFileList');
+            listEl.innerHTML = '<div style="padding:1rem; text-align:center;">Loading...</div>';
+            const editor = document.getElementById('codeEditor');
+            editor.value = '';
+            
+            try {
+                const res = await fetch(`/api/content?folder=${folder}`);
+                if(!res.ok) throw new Error('Fetch failed');
+                const data = await res.json();
+                
+                listEl.innerHTML = '';
+                if(data.files.length === 0) listEl.innerHTML = '<div style="padding:0.5rem;">无文件</div>';
+                
+                data.files.forEach(f => {
+                    const d = document.createElement('div');
+                    d.className = 'file-item';
+                    d.innerText = f;
+                    d.onclick = () => loadFileContent(folder, f, d);
+                    listEl.appendChild(d);
+                });
+            } catch(e) {
+                listEl.innerHTML = '<div style="color:red; padding:0.5rem;">加载失败</div>';
+            }
+        }
+
+        async function loadFileContent(folder, file, el) {
+            document.querySelectorAll('.file-item').forEach(x => x.classList.remove('active'));
+            el.classList.add('active');
+            currentFile = file;
+
+            const editor = document.getElementById('codeEditor');
+            editor.value = 'Loading...';
+            editor.disabled = true;
+
+            try {
+                const res = await fetch(`/api/content?folder=${folder}&file=${file}`);
+                const data = await res.json();
+                editor.value = data.content;
+                editor.disabled = false;
+            } catch(e) {
+                editor.value = '读取失败';
+            }
+        }
+
+        async function saveCode() {
+            if(!currentProjectName || !currentFile) return showToast('未选择文件', 'error');
+            const content = document.getElementById('codeEditor').value;
+            const btn = document.getElementById('btnSaveCode');
+            btn.disabled = true; 
+            btn.innerText = '保存中...';
+
+            try {
+                // 修复点：明确发送 application/json
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        folderName: currentProjectName,
+                        fileName: currentFile,
+                        content: content
+                    })
+                });
+                
+                if(res.ok) showToast('代码保存成功');
+                else showToast('保存失败', 'error');
+            } catch(e) { showToast('请求错误', 'error'); }
+            finally { btn.disabled = false; btn.innerText = '保存代码更改'; }
+        }
+
+        // ============ 通用工具 ============
+        function switchTab(t) {
+            document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+            document.getElementById('tab-' + t).classList.add('active');
+            document.getElementById('view-settings').classList.add('hidden');
+            document.getElementById('view-code').classList.add('hidden');
+            document.getElementById('view-' + t).classList.remove('hidden');
+            if(t === 'code' && currentProjectName) loadFileList(currentProjectName);
+        }
+
+        function togglePwdArea() {
+            const chk = document.getElementById('f_encrypted');
+            const area = document.getElementById('pwdArea');
+            if(chk.checked) area.classList.remove('hidden');
+            else area.classList.add('hidden');
+        }
+
+        function confirmDelete() {
+            if(!currentProjectName) return;
+            openConfirmModal(`确定删除 ${currentProjectName} 吗？`, async () => {
+                try {
+                    const res = await fetch('/api/delete', {
+                        method: 'POST', headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({ folderName: currentProjectName })
+                    });
+                    if(res.ok) { showToast('删除成功'); initCreateMode(); loadProjects(); }
+                    else showToast('删除失败', 'error');
+                } catch(e) { showToast('Error', 'error'); }
+            });
+        }
+
+        function showToast(msg, type='success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        let confirmCallback = null;
+        function openConfirmModal(text, cb) {
+            document.getElementById('confirmText').innerText = text;
+            document.getElementById('confirmModal').classList.add('active');
+            confirmCallback = cb;
+        }
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+            confirmCallback = null;
+        }
+        document.getElementById('btnConfirmAction').onclick = () => {
+            if(confirmCallback) confirmCallback();
+            closeConfirmModal();
+        }
+        // ============ 全局设置 ============
+        async function openSettings() {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                document.getElementById('settingPageSize').value = data.pageSize;
+                document.getElementById('settingsModal').classList.add('active');
+            } catch(e) { showToast('加载设置失败', 'error'); }
+        }
+
+        async function saveSettings() {
+            const pageSize = document.getElementById('settingPageSize').value;
+            try {
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ pageSize })
+                });
+                if(res.ok) {
+                    showToast('设置已保存');
+                    document.getElementById('settingsModal').classList.remove('active');
+                } else showToast('保存失败', 'error');
+            } catch(e) { showToast('保存失败', 'error'); }
+        }
+
+        // ============ JS Lib 管理 ============
+        async function loadCommonLibs() {
+            const presets = {
+                'jquery': 'jQuery',
+                'vue': 'Vue 2',
+                'react': 'React 17',
+                'axios': 'Axios',
+                'lodash': 'Lodash'
+            };
+            
+            const grid = document.getElementById('commonLibGrid');
+            grid.innerHTML = '<div style="color:#999; font-size:0.8rem;">Loading...</div>';
+
+            try {
+                // Fetch uploaded libs
+                const res = await fetch('/api/libs');
+                const uploaded = res.ok ? await res.json() : [];
+                
+                grid.innerHTML = '';
+                
+                // Render Presets
+                for(let [k, v] of Object.entries(presets)) {
+                    const lbl = document.createElement('label');
+                    lbl.className = 'lib-item';
+                    lbl.innerHTML = `<input type="checkbox" name="libs" value="${k}"> ${v}`;
+                    grid.appendChild(lbl);
+                }
+
+                // Render Uploaded
+                uploaded.forEach(f => {
+                    const lbl = document.createElement('label');
+                    lbl.className = 'lib-item';
+                    lbl.style.background = '#f0fdf4';
+                    lbl.style.borderColor = '#bbf7d0';
+                    // Value is full path or just name? 
+                    // upload.js logic: if value matches preset key, uses preset CDN.
+                    // If not, we need to handle it.
+                    // Currently upload.js only knows PRESET_LIBS.
+                    // We need to update upload.js to handle custom libs path if we want "automatic injection".
+                    // For now, let's assume we pass the full URL or relative path?
+                    // The user wants "Automatic Injection".
+                    // If I pass "jquery", upload.js injects CDN.
+                    // If I pass "mylib.js", upload.js doesn't know what to do.
+                    // I need to update upload.js inject logic to handle uploaded libs.
+                    // Let's assume the value is `public/libs/${f}`.
+                    lbl.innerHTML = `<input type="checkbox" name="libs" value="/libs/${f}"> ${f}`;
+                    grid.appendChild(lbl);
+                });
+
+            } catch(e) {
+                console.error(e);
+                grid.innerHTML = '加载失败';
+            }
+        }
+
+        function triggerLibUpload() {
+            document.getElementById('libUploadInput').click();
+        }
+
+        async function doUploadLib(input) {
+            if(!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                showToast('正在上传库...', 'info');
+                const res = await fetch('/api/libs', { method: 'POST', body: formData });
+                if(res.ok) {
+                    showToast('上传成功');
+                    loadCommonLibs();
+                } else {
+                    showToast('上传失败', 'error');
+                }
+            } catch(e) {
+                showToast('上传出错', 'error');
+            }
+            input.value = ''; // reset
+        }
+    </script>
+</body>
+</html>
