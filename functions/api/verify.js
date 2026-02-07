@@ -14,13 +14,17 @@ export async function onRequestPost(context) {
     const headers = new Headers();
     headers.append('Content-Type', 'application/json');
 
-    // 如果勾选记住密码
+    // 无论是否勾选记住密码，都必须设置 Cookie，否则无法通过 Middleware 验证
+    // 如果不勾选记住密码，则设置 Session Cookie (无 Max-Age)
+    let cookieStr = `auth_${folderName}=${encodeURIComponent(password)}; Path=/; SameSite=Lax`;
+    
     if (remember) {
         const days = project.remember_days || 30;
         const maxAge = days * 86400;
-        // 设置 Cookie：auth_项目名=password (用于 Middleware 验证)
-        headers.append('Set-Cookie', `auth_${folderName}=${password}; Path=/; Max-Age=${maxAge}; SameSite=Lax`);
+        cookieStr += `; Max-Age=${maxAge}`;
     }
+
+    headers.append('Set-Cookie', cookieStr);
 
     return new Response(JSON.stringify({ success: true }), { headers });
   }
