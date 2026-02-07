@@ -28,6 +28,20 @@ export async function onRequestGet(context) {
 
 export async function onRequestPost(context) {
   const { request, env } = context;
+
+  // Check Admin Auth
+  const cookie = request.headers.get('Cookie') || '';
+  const match = cookie.match(/admin_session=([^;]+)/);
+  let isAdmin = false;
+  if (match) {
+      const token = match[1];
+      try {
+          const res = await env.DB.prepare('SELECT 1 FROM admin_users WHERE session_token = ?').bind(token).first();
+          if (res) isAdmin = true;
+      } catch(e) {}
+  }
+  if (!isAdmin) return new Response(JSON.stringify({ success: false, message: 'Unauthorized' }), { status: 401 });
+
   const body = await request.json();
 
   try {
