@@ -3,143 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的项目集</title>
+    <title>项目展示</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <nav class="navbar">
         <a href="/" class="brand">MyLab</a>
-        <!-- 新增：搜索框 -->
-        <div class="search-box">
-            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input type="text" id="searchInput" class="search-input" placeholder="搜索项目..." oninput="filterProjects()">
+        <!-- 搜索区域 -->
+        <div style="position:relative; width: 100%; max-width: 400px;">
+            <div class="search-box">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input type="text" id="searchInput" class="search-input" placeholder="全局搜索项目..." oninput="filterProjects()">
+                <button id="clearSearch" onclick="clearSearch()" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#999;">✕</button>
+            </div>
+            <div id="searchResultHint" style="position:absolute; top: 100%; left: 10px; font-size: 0.8rem; color: #666; margin-top: 4px;"></div>
         </div>
         <div class="nav-links">
-            <a href="#">首页</a>
             <a href="https://github.com/yourname" target="_blank">GitHub</a>
         </div>
     </nav>
 
     <div class="container">
         <header style="text-align: center; margin: 4rem 0;">
-            <h1>探索与创造</h1>
-            <p style="color: var(--text-muted);">这里的每个像素都来自热爱。</p>
+            <h1>Project Portfolio</h1>
         </header>
 
         <main id="project-list" class="project-grid">
             <!-- PROJECT_LIST_START -->
-
-      <article class="project-card" data-name="number1">
-        <div class="card-icon locked"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div>
-        <h3 class="card-title">number1</h3>
-        <div class="card-meta">
-            需要密码访问
-        </div>
-        <div class="card-actions">
-          <button onclick="handleAccess('number1', true)" class="btn btn-primary btn-sm">访问</button>
-          <button onclick="showPlanetInfo()" class="btn btn-outline btn-sm">知识星球</button>
-          
-        </div>
-      </article>
-    
-<!-- PROJECT_LIST_END -->
+            <!-- PROJECT_LIST_END -->
         </main>
     </div>
 
-    <!-- 增强版密码 Modal -->
+    <!-- Password Modal -->
     <div id="passwordModal" class="modal-overlay">
         <div class="modal-box">
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div style="background: #fee2e2; color: #dc2626; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                </div>
-                <h3 id="modalProjectName" style="font-size: 1.25rem;">受限项目</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">
-                    该项目为私有演示，请输入访问密码。<br>
-                    <span style="font-size: 0.8rem; color: #64748b;">(密码请联系管理员或在知识星球获取)</span>
-                </p>
+            <div style="text-align: center;">
+                <h3 id="modalProjectName">受限项目</h3>
+                <p style="color:#666; font-size:0.9rem; margin-bottom:1rem;">请输入密码访问。</p>
             </div>
-
             <div class="form-group">
-                <div class="password-wrapper">
-                    <input type="password" id="accessPassword" class="form-input" placeholder="输入密码..." onkeydown="if(event.key==='Enter') verifyPassword()">
-                    <span class="password-toggle" onclick="toggleModalPwd()">
-                        <svg id="modalEye" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                    </span>
+                <input type="password" id="accessPassword" class="form-input" placeholder="Password">
+                <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
+                    <label style="font-size: 0.9rem; cursor: pointer; display: flex; align-items: center;">
+                        <input type="checkbox" id="chkRemember" style="margin-right: 5px;"> 记住密码
+                        <span id="rememberDuration" style="font-size:0.8rem; color:#999; margin-left:4px;">(30天)</span>
+                    </label>
                 </div>
-                <div id="pwdError" style="color: #ef4444; font-size: 0.85rem; margin-top: 0.5rem; display: none;">密码错误，请重试</div>
+                <div id="pwdError" style="color:red; font-size:0.85rem; display:none; margin-top:5px;">密码错误</div>
             </div>
-
-            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
-                <button onclick="closeModal()" class="btn btn-outline" style="flex: 1;">取消</button>
-                <button onclick="verifyPassword()" class="btn btn-primary" style="flex: 1;">验证进入</button>
+            <div style="display:flex; gap:10px; margin-top:1.5rem;">
+                <button onclick="closeModal()" class="btn btn-outline" style="flex:1;">取消</button>
+                <button onclick="verifyPassword()" class="btn btn-primary" style="flex:1;">进入</button>
             </div>
         </div>
     </div>
 
     <script src="js/main.js"></script>
     <script>
-        // 前端逻辑
-        function openModal(id) { document.getElementById(id).classList.add('active'); }
-        function closeModal() { 
-            document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
-            document.getElementById('pwdError').style.display = 'none'; 
-        }
-
-        // 搜索功能
         function filterProjects() {
             const val = document.getElementById('searchInput').value.toLowerCase();
             const cards = document.querySelectorAll('.project-card');
+            const clearBtn = document.getElementById('clearSearch');
+            const hint = document.getElementById('searchResultHint');
+            
+            clearBtn.style.display = val ? 'block' : 'none';
+            
+            let count = 0;
             cards.forEach(card => {
                 const name = card.getAttribute('data-name');
                 if (name && name.includes(val)) {
                     card.style.display = 'flex';
+                    count++;
                 } else {
                     card.style.display = 'none';
                 }
             });
-        }
-
-        // 密码切换
-        function toggleModalPwd() {
-            const input = document.getElementById('accessPassword');
-            const icon = document.getElementById('modalEye');
-            if(input.type === 'password') {
-                input.type = 'text';
-                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>';
+            
+            if (val) {
+                hint.innerText = `找到 ${count} 个相关项目`;
             } else {
-                input.type = 'password';
-                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>';
+                hint.innerText = '';
             }
         }
 
-        // 覆盖 main.js 的入口
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            filterProjects();
+        }
+
+        // Auth Logic
+        function getCookie(name) {
+            const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+            return v ? v[2] : null;
+        }
+
         function handleAccess(folder, isEncrypted) {
-            if(!isEncrypted) { window.location.href=`/projects/${folder}/index.html`; return; }
+            if (!isEncrypted) {
+                window.location.href = `/projects/${folder}/index.html`;
+                return;
+            }
+            
+            // Check cookie
+            if (getCookie(`access_${folder}`) === 'ok') {
+                window.location.href = `/projects/${folder}/index.html`;
+                return;
+            }
+
             window.currentFolder = folder;
-            // 设置标题
             document.getElementById('modalProjectName').innerText = folder;
             document.getElementById('accessPassword').value = '';
+            document.getElementById('chkRemember').checked = false;
             document.getElementById('pwdError').style.display = 'none';
-            openModal('passwordModal');
+            document.getElementById('passwordModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('passwordModal').classList.remove('active');
         }
 
         async function verifyPassword() {
             const password = document.getElementById('accessPassword').value;
-            if (!password) return;
-
+            const remember = document.getElementById('chkRemember').checked;
+            
             const res = await fetch('/api/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ folderName: window.currentFolder, password })
+                body: JSON.stringify({ folderName: window.currentFolder, password, remember })
             });
 
             const data = await res.json();
             if (data.success) {
-                // BUG 修复：确保跳转
                 window.location.href = `/projects/${window.currentFolder}/index.html`;
             } else {
-                // 显示错误信息
                 document.getElementById('pwdError').style.display = 'block';
             }
         }
