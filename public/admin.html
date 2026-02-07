@@ -296,7 +296,7 @@
 
         // ============ 数据加载与列表渲染 ============
         async function loadProjects() {
-            const res = await fetch('/api/list');
+            const res = await fetch('/api/list?page=1&limit=1000'); // Admin needs all or many
             if (res.status === 401) {
                 document.getElementById('loginLayer').classList.remove('hidden');
                 document.getElementById('mainDashboard').classList.add('hidden');
@@ -305,7 +305,16 @@
             document.getElementById('loginLayer').classList.add('hidden');
             document.getElementById('mainDashboard').classList.remove('hidden');
             
-            allProjects = await res.json();
+            const data = await res.json();
+            // Compat check: data might be array (old) or { items: [], total: ... } (new)
+            if (Array.isArray(data)) {
+                allProjects = data;
+            } else if (data.items && Array.isArray(data.items)) {
+                allProjects = data.items;
+            } else {
+                allProjects = [];
+            }
+            
             renderList();
 
             if (!currentProjectName) initCreateMode();
