@@ -4,7 +4,7 @@ export async function onRequestGet(context) {
   
   // Get pagination params
   const page = parseInt(url.searchParams.get('page') || '1');
-  let pageSize = parseInt(url.searchParams.get('pageSize') || '0'); // 0 means use default
+  let pageSize = parseInt(url.searchParams.get('pageSize') || url.searchParams.get('limit') || '0'); // Support limit alias
   
   // If pageSize is not provided, fetch from settings
   if (pageSize <= 0) {
@@ -15,8 +15,14 @@ export async function onRequestGet(context) {
   const offset = (page - 1) * pageSize;
   const search = url.searchParams.get('search') || '';
 
-  let query = 'SELECT * FROM projects WHERE is_public = 1';
-  let countQuery = 'SELECT COUNT(*) as total FROM projects WHERE is_public = 1';
+  // Check Admin Auth
+  const cookie = request.headers.get('Cookie') || '';
+  const isAdmin = env.ADMIN_SESSION_SECRET && cookie.includes(`admin_session=${env.ADMIN_SESSION_SECRET}`);
+
+  let whereClause = isAdmin ? '1=1' : 'is_public = 1';
+
+  let query = `SELECT * FROM projects WHERE ${whereClause}`;
+  let countQuery = `SELECT COUNT(*) as total FROM projects WHERE ${whereClause}`;
   const params = [];
 
   if (search) {
@@ -38,8 +44,18 @@ export async function onRequestGet(context) {
   const totalRes = await env.DB.prepare(countQuery).bind(...params).first();
   const total = totalRes.total;
 
+  const items = results.map(p => ({
+      folder_name: p.folder_name,
+      project_name: p.project_name || p.folder_name, // 优先使用中文名
+      is_public: !!p.is_public,
+      is_encrypted: !!p.is_encrypted,
+      has_article: !!p.article_link,
+      icon_url: p.icon_url,
+      extra_buttons: p.extra_buttons // JSON string, frontend needs to parse
+  }));
+
   return new Response(JSON.stringify({
-      items: results,
+      items,
       total,
       page,
       pageSize,
