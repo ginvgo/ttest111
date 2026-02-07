@@ -19,7 +19,8 @@ export async function onRequestGet(context) {
   const cookie = request.headers.get('Cookie') || '';
   const isAdmin = env.ADMIN_SESSION_SECRET && cookie.includes(`admin_session=${env.ADMIN_SESSION_SECRET}`);
 
-  let whereClause = isAdmin ? '1=1' : 'is_public = 1';
+  // 兼容性过滤: 允许 1, '1', 'true' 作为公开标记
+  let whereClause = isAdmin ? '1=1' : "(is_public = 1 OR is_public = '1' OR is_public = 'true')";
 
   let query = `SELECT * FROM projects WHERE ${whereClause}`;
   let countQuery = `SELECT COUNT(*) as total FROM projects WHERE ${whereClause}`;
@@ -31,7 +32,8 @@ export async function onRequestGet(context) {
       params.push(`%${search}%`, `%${search}%`);
   }
 
-  query += ' ORDER BY updated_at DESC LIMIT ? OFFSET ?';
+  // 使用 ID 倒序作为主要排序，因为 updated_at 可能为空或不准确
+  query += ' ORDER BY id DESC LIMIT ? OFFSET ?';
   
   // Execute queries
   // Note: D1 bind params order matters.
