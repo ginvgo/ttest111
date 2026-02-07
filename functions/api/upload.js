@@ -46,6 +46,20 @@ const PRESET_LIBS = {
 
 export async function onRequestPost(context) {
   const { request, env } = context;
+  
+  // === Auto Migration: Ensure columns exist ===
+  // This is a temporary safety measure for existing databases
+  try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN project_name TEXT").run(); } catch(e) {}
+  try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN injected_libs TEXT").run(); } catch(e) {}
+  try { await env.DB.prepare("ALTER TABLE projects ADD COLUMN remember_days INTEGER DEFAULT 30").run(); } catch(e) {}
+  try { 
+      // Also ensure app_settings table exists
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)`).run();
+      // Insert default page_size if not exists
+      await env.DB.prepare(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('page_size', '12')`).run();
+  } catch(e) {}
+  // ============================================
+
   const contentType = request.headers.get('content-type') || '';
   
   let folderName, projectName, isPublic, isEncrypted, passwords, articleLink, injectedLibs, rememberDays;
