@@ -336,10 +336,11 @@
                     </div>
                     <input type="text" class="form-input" placeholder="按钮名称 (如: 关于我们)" value="${btn.label}" onchange="updateExtraButton(${index}, 'label', this.value)">
                     <select class="form-input" onchange="updateExtraButton(${index}, 'type', this.value)">
-                        <option value="text" ${btn.type === 'text' ? 'selected' : ''}>纯文本弹窗</option>
+                        <option value="text" ${btn.type === 'text' ? 'selected' : ''}>纯文本弹窗 (支持 Markdown)</option>
                         <option value="image" ${btn.type === 'image' ? 'selected' : ''}>图片弹窗</option>
                     </select>
-                    <textarea class="form-input" placeholder="内容 (文本 或 图片URL)" style="height:60px" onchange="updateExtraButton(${index}, 'content', this.value)">${btn.content}</textarea>
+                    <textarea class="form-input" placeholder="内容 (支持 Markdown 语法，如 **加粗** 或 HTML)" style="height:80px; font-family:monospace;" onchange="updateExtraButton(${index}, 'content', this.value)">${btn.content}</textarea>
+                    <div style="font-size:0.75rem; color:#94a3b8; margin-top:-5px;">提示: 文本模式支持 Markdown 语法 (换行请用空行)</div>
                 `;
                 container.appendChild(div);
             });
@@ -427,9 +428,23 @@
             filtered.forEach(p => {
                 const div = document.createElement('div');
                 div.className = `list-item ${p.folder_name === currentProjectName ? 'active' : ''}`;
+                
+                // Icon Logic
+                let iconHtml = '<i class="fa-solid fa-cube" style="color:#cbd5e1;"></i>';
+                if (p.icon_url) {
+                    if (p.icon_url.startsWith('fa-')) {
+                        iconHtml = `<i class="${p.icon_url}" style="color:var(--primary);"></i>`;
+                    } else {
+                        iconHtml = `<img src="${p.icon_url}" style="width:16px; height:16px; object-fit:contain;">`;
+                    }
+                }
+
                 div.innerHTML = `
-                    <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis;">${p.project_name || p.folder_name}</div>
-                    <div style="font-size:0.75rem; color:#64748b;">${p.folder_name} · ${p.is_public?'公开':'隐藏'}</div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="width:20px; text-align:center;">${iconHtml}</div>
+                        <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; flex:1;">${p.project_name || p.folder_name}</div>
+                    </div>
+                    <div style="font-size:0.75rem; color:#64748b; padding-left:28px;">${p.folder_name} · ${p.is_public?'公开':'隐藏'} ${p.is_encrypted ? '🔒' : ''}</div>
                 `;
                 div.onclick = () => selectProject(p.folder_name);
                 listEl.appendChild(div);
