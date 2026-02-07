@@ -359,7 +359,9 @@
             listEl.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#94a3b8;">Loading...</div>';
             
             try {
-                const res = await fetch(`/api/list?page=${page}&search=${encodeURIComponent(search)}`);
+                // Add timestamp to prevent caching
+                const t = new Date().getTime();
+                const res = await fetch(`/api/list?page=${page}&search=${encodeURIComponent(search)}&t=${t}`);
                 const data = await res.json();
                 
                 // Update Stats
